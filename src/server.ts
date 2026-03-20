@@ -11,6 +11,7 @@ import officersRoutes from './routes/officers.routes.js';
 import incidentsRoutes from './routes/incidents.routes.js';
 import shiftsRoutes from './routes/shifts.routes.js';
 import patrolsRoutes from './routes/patrols.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -51,6 +52,7 @@ export function buildApp() {
   app.register(incidentsRoutes);
   app.register(shiftsRoutes);
   app.register(patrolsRoutes);
+  app.register(dashboardRoutes);
 
   return app;
 }

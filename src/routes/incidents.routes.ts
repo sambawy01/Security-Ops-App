@@ -43,6 +43,34 @@ async function calculateSlaDeadlines(categoryId: string | undefined | null, prio
 }
 
 const incidentsRoutes: FastifyPluginAsync = async (app) => {
+  // GET /api/v1/incidents/geojson — Open/active incidents as GeoJSON
+  app.get('/api/v1/incidents/geojson', {
+    config: { allowedRoles: LIST_ROLES },
+  }, async (request) => {
+    const incidents = await prisma.$queryRaw`
+      SELECT i.id, i.title, i.priority, i.status, i.zone_id,
+        i.sla_response_deadline, i.sla_resolution_deadline,
+        c.name_en as category_name, ST_AsGeoJSON(i.location)::json as geometry
+      FROM incidents i
+      LEFT JOIN categories c ON c.id = i.category_id
+      WHERE i.status IN ('open', 'assigned', 'in_progress', 'escalated')
+      AND i.location IS NOT NULL
+    `;
+    return {
+      type: 'FeatureCollection',
+      features: (incidents as any[]).map(i => ({
+        type: 'Feature',
+        properties: {
+          id: i.id, title: i.title, priority: i.priority, status: i.status,
+          category: i.category_name, zoneId: i.zone_id,
+          slaResponseDeadline: i.sla_response_deadline,
+          slaResolutionDeadline: i.sla_resolution_deadline,
+        },
+        geometry: i.geometry,
+      })),
+    };
+  });
+
   // GET /api/v1/incidents — List incidents
   app.get('/api/v1/incidents', {
     config: { allowedRoles: LIST_ROLES },
@@ -64,6 +92,8 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
     if (query.zone) where.zoneId = query.zone;
     if (query.priority) where.priority = query.priority;
     if (query.assignedOfficerId) where.assignedOfficerId = query.assignedOfficerId;
+    if (query.search) where.title = { contains: query.search, mode: 'insensitive' };
+    if (query.categoryId) where.categoryId = query.categoryId;
 
     const incidents = await prisma.incident.findMany({
       where,

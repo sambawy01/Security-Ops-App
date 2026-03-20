@@ -9,6 +9,8 @@ export const listIncidentsQuerySchema = z.object({
   zone: z.string().uuid().optional(),
   priority: z.enum(['critical', 'high', 'medium', 'low']).optional(),
   assignedOfficerId: z.string().uuid().optional(),
+  search: z.string().optional(),
+  categoryId: z.string().uuid().optional(),
   skip: z.coerce.number().int().min(0).default(0),
   take: z.coerce.number().int().min(1).max(200).default(50),
 });

@@ -93,6 +93,40 @@ const zonesRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
+  // GET /api/v1/zones/geojson — Zones as GeoJSON FeatureCollection
+  app.get('/api/v1/zones/geojson', async (request) => {
+    const zones = await prisma.$queryRaw`
+      SELECT id, name_en, name_ar, color,
+        ST_AsGeoJSON(boundary)::json as geometry
+      FROM zones WHERE boundary IS NOT NULL
+    `;
+    return {
+      type: 'FeatureCollection',
+      features: (zones as any[]).map(z => ({
+        type: 'Feature',
+        properties: { id: z.id, nameEn: z.name_en, nameAr: z.name_ar, color: z.color },
+        geometry: z.geometry,
+      })),
+    };
+  });
+
+  // GET /api/v1/checkpoints/geojson — Checkpoints as GeoJSON FeatureCollection
+  app.get('/api/v1/checkpoints/geojson', async (request) => {
+    const checkpoints = await prisma.$queryRaw`
+      SELECT id, name_en, name_ar, zone_id, type, status,
+        ST_AsGeoJSON(location)::json as geometry
+      FROM checkpoints
+    `;
+    return {
+      type: 'FeatureCollection',
+      features: (checkpoints as any[]).map(c => ({
+        type: 'Feature',
+        properties: { id: c.id, nameEn: c.name_en, nameAr: c.name_ar, zoneId: c.zone_id, type: c.type, status: c.status },
+        geometry: c.geometry,
+      })),
+    };
+  });
+
   // GET /api/v1/zones/:id/checkpoints — List checkpoints in a zone with lat/lng
   app.get('/api/v1/zones/:id/checkpoints', async (request) => {
     const { id } = zoneParamsSchema.parse((request as any).params);

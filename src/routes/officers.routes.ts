@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 import { hashPin } from '../lib/auth.js';
-import { insertOfficerLocation } from '../lib/geo.js';
+import { insertOfficerLocation, getAllActiveOfficerLocations } from '../lib/geo.js';
 import { ForbiddenError, NotFoundError } from '../lib/errors.js';
 import {
   officerParamsSchema,
@@ -18,15 +18,23 @@ const LIST_ROLES = ['manager', 'assistant_manager', 'hr_admin', 'supervisor', 'o
 const LOCATION_HISTORY_ROLES = ['manager', 'assistant_manager', 'supervisor', 'operator'];
 
 const officersRoutes: FastifyPluginAsync = async (app) => {
-  // GET /api/v1/officers — List officers
+  // GET /api/v1/officers — List officers (with optional status filter)
   app.get('/api/v1/officers', {
     config: { allowedRoles: LIST_ROLES },
   }, async (request) => {
     const user = request.user;
+    const query = request.query as Record<string, string | undefined>;
+    const status = query.status;
 
-    const where = user.role === 'supervisor' && user.zoneId
-      ? { zoneId: user.zoneId }
-      : {};
+    const where: Record<string, any> = {};
+
+    if (user.role === 'supervisor' && user.zoneId) {
+      where.zoneId = user.zoneId;
+    }
+
+    if (status) {
+      where.status = status as any;
+    }
 
     const officers = await prisma.officer.findMany({
       where,
@@ -40,11 +48,26 @@ const officersRoutes: FastifyPluginAsync = async (app) => {
         zoneId: true,
         status: true,
         phone: true,
+        _count: {
+          select: {
+            assignedIncidents: {
+              where: { status: { in: ['open', 'assigned', 'in_progress'] } },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });
 
     return { data: officers };
+  });
+
+  // GET /api/v1/officers/locations — Latest location for all active officers
+  app.get('/api/v1/officers/locations', {
+    config: { allowedRoles: LIST_ROLES },
+  }, async (request) => {
+    const locations = await getAllActiveOfficerLocations();
+    return locations;
   });
 
   // GET /api/v1/officers/:id — Officer detail

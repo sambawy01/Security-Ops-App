@@ -42,21 +42,13 @@ export function CommandMap({ children }: { children?: React.ReactNode }) {
       showUserHeading: true,
     }), 'top-right');
 
-    // Scale marker contents with zoom — targets inner elements, not MapLibre wrapper
+    // Expose zoom scale for marker components to read
+    (map as any)._markerScale = 1;
     const BASE_ZOOM = 14;
-    function scaleMarkers() {
+    map.on('zoom', () => {
       const zoom = map.getZoom();
-      const scale = Math.max(0.25, Math.min(1.3, Math.pow(2, (zoom - BASE_ZOOM) * 0.6)));
-      // Target our custom marker classes inside the MapLibre wrapper
-      map.getContainer().querySelectorAll('.officer-marker, .incident-marker').forEach((el: Element) => {
-        (el as HTMLElement).style.transform = `scale(${scale})`;
-      });
-    }
-    map.on('zoom', scaleMarkers);
-    map.on('zoomend', scaleMarkers);
-    // Catch newly added markers
-    const scaleInterval = setInterval(scaleMarkers, 1500);
-    map.on('remove', () => clearInterval(scaleInterval));
+      (map as any)._markerScale = Math.max(0.3, Math.min(1.2, Math.pow(2, (zoom - BASE_ZOOM) * 0.5)));
+    });
 
     map.on('load', () => {
       setMapInstance(map);

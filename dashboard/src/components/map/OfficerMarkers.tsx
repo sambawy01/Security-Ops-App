@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useMap } from './MapContext';
 import { useOfficerLocations } from '../../hooks/useOfficers';
@@ -12,7 +12,7 @@ function injectStyles() {
   style.textContent = `
     .officer-marker {
       display: flex; align-items: center; justify-content: center;
-      width: 32px; height: 32px; cursor: pointer; position: relative;
+      cursor: pointer; position: relative;
       transform-origin: center center;
     }
     .officer-marker svg {
@@ -34,13 +34,26 @@ function injectStyles() {
 }
 
 // SVG person icon — distinct from incident circle markers
-function personSVG(color: string, initial: string): string {
+function personSVG(color: string, initial: string, size: number): string {
+  const r = size / 2 - 2;
+  const fontSize = Math.max(6, size * 0.4);
+  const textY = size / 2 + fontSize * 0.35;
   return `
-    <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="16" cy="16" r="14" fill="${color}" stroke="white" stroke-width="2.5"/>
-      <text x="16" y="20.5" text-anchor="middle" fill="white" font-size="13" font-weight="700" font-family="system-ui,sans-serif">${initial}</text>
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="${color}" stroke="white" stroke-width="2"/>
+      <text x="${size/2}" y="${textY}" text-anchor="middle" fill="white" font-size="${fontSize}" font-weight="700" font-family="system-ui,sans-serif">${initial}</text>
     </svg>
   `;
+}
+
+function getMarkerSize(map: any): number {
+  const zoom = map?.getZoom?.() ?? 14;
+  if (zoom >= 15) return 36;
+  if (zoom >= 14) return 32;
+  if (zoom >= 13) return 24;
+  if (zoom >= 12) return 18;
+  if (zoom >= 11) return 14;
+  return 10;
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -55,29 +68,24 @@ export function OfficerMarkers() {
   const map = useMap();
   const { data: locations } = useOfficerLocations();
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
-  const dataHashRef = useRef<string>('');
+  const [zoomLevel, setZoomLevel] = useState(12.5);
+
+  // Track zoom changes to resize markers
+  useEffect(() => {
+    if (!map) return;
+    const onZoom = () => {
+      const z = Math.round(map.getZoom() * 2) / 2; // Round to nearest 0.5
+      setZoomLevel((prev) => (prev !== z ? z : prev));
+    };
+    map.on('zoomend', onZoom);
+    return () => { map.off('zoomend', onZoom); };
+  }, [map]);
 
   useEffect(() => {
     if (!map || !locations) return;
     injectStyles();
 
-    // Only rebuild markers if data actually changed
-    const newHash = JSON.stringify(locations.map((l: any) => l.officer_id));
-    const dataChanged = newHash !== dataHashRef.current;
-    dataHashRef.current = newHash;
-
-    if (!dataChanged && markersRef.current.size > 0) {
-      // Just update positions without removing/recreating markers
-      locations.forEach((loc: any) => {
-        const existing = markersRef.current.get(loc.officer_id);
-        if (existing && loc.lat != null && loc.lng != null) {
-          existing.setLngLat([loc.lng, loc.lat]);
-        }
-      });
-      return;
-    }
-
-    // Full rebuild — only when officers change
+    // Always rebuild on zoom change or data change
     markersRef.current.forEach((m) => m.remove());
     markersRef.current.clear();
 
@@ -97,11 +105,14 @@ export function OfficerMarkers() {
         : name.slice(0, 2).toUpperCase();
 
       const color = ROLE_COLORS[role] ?? ROLE_COLORS.officer;
+      const size = getMarkerSize(map);
 
       // Create marker element with person icon
       const el = document.createElement('div');
       el.className = 'officer-marker';
-      el.innerHTML = personSVG(color, initial);
+      el.style.width = size + 'px';
+      el.style.height = size + 'px';
+      el.innerHTML = personSVG(color, initial, size);
 
       // Name label (shows on hover)
       const label = document.createElement('div');
@@ -149,7 +160,7 @@ export function OfficerMarkers() {
       markersRef.current.forEach((m) => m.remove());
       markersRef.current.clear();
     };
-  }, [map, locations]);
+  }, [map, locations, zoomLevel]);
 
   return null;
 }

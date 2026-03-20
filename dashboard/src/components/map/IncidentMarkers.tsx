@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useMap } from './MapContext';
 import { useIncidentsGeoJSON } from '../../hooks/useIncidents';
@@ -30,9 +30,7 @@ function injectPulseStyle() {
       100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
     }
     .incident-pulse { animation: incident-pulse 1.5s ease-out infinite; }
-    .incident-marker {
-      transform-origin: center center;
-    }
+    .incident-marker { transform-origin: center center; }
   `;
   document.head.appendChild(style);
 }
@@ -41,23 +39,23 @@ export function IncidentMarkers() {
   const map = useMap();
   const { data } = useIncidentsGeoJSON();
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
-  const dataHashRef = useRef<string>('');
+  const [zoomLevel, setZoomLevel] = useState(12.5);
+
+  useEffect(() => {
+    if (!map) return;
+    const onZoom = () => {
+      const z = Math.round(map.getZoom() * 2) / 2;
+      setZoomLevel((prev) => (prev !== z ? z : prev));
+    };
+    map.on('zoomend', onZoom);
+    return () => { map.off('zoomend', onZoom); };
+  }, [map]);
 
   useEffect(() => {
     if (!map || !data) return;
     injectPulseStyle();
 
     const features = data.features ?? [];
-
-    // Only rebuild if incident set changed
-    const newHash = JSON.stringify(features.map((f: any) => f.properties?.id));
-    const dataChanged = newHash !== dataHashRef.current;
-    dataHashRef.current = newHash;
-
-    if (!dataChanged && markersRef.current.size > 0) {
-      // Positions don't change for incidents — skip rebuild
-      return;
-    }
 
     markersRef.current.forEach((m) => m.remove());
     markersRef.current.clear();
@@ -74,11 +72,15 @@ export function IncidentMarkers() {
       const status = props.status ?? 'open';
       const incidentId = props.id ?? '';
 
+      // Marker size based on zoom
+      const zoom = map.getZoom();
+      const markerSize = zoom >= 15 ? 18 : zoom >= 14 ? 16 : zoom >= 13 ? 12 : zoom >= 12 ? 9 : zoom >= 11 ? 7 : 5;
+
       // Marker element
       const el = document.createElement('div');
       el.className = 'incident-marker';
-      el.style.width = '16px';
-      el.style.height = '16px';
+      el.style.width = markerSize + 'px';
+      el.style.height = markerSize + 'px';
       el.style.borderRadius = '50%';
       el.style.backgroundColor = color;
       el.style.border = '2px solid white';
@@ -148,7 +150,7 @@ export function IncidentMarkers() {
       markersRef.current.forEach((m) => m.remove());
       markersRef.current.clear();
     };
-  }, [map, data]);
+  }, [map, data, zoomLevel]);
 
   return null;
 }

@@ -69,18 +69,8 @@ export function CommandMap({ children }: { children?: React.ReactNode }) {
               .setPopup(popup)
               .addTo(map);
 
-            // Auto-relocate personnel around current position
-            try {
-              const token = localStorage.getItem('accessToken');
-              await fetch(`${import.meta.env.VITE_API_URL}/api/v1/dashboard/relocate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ lat: latitude, lng: longitude }),
-              });
-              console.log(`[map] Personnel relocated around ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-            } catch {
-              // Best-effort — if it fails, officers stay where they were
-            }
+            // Save user location for operations center reference
+            console.log(`[map] Your location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
           },
           () => {
             // Geolocation denied or failed — stay at El Gouna default

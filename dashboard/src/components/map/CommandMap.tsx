@@ -45,10 +45,10 @@ export function CommandMap({ children }: { children?: React.ReactNode }) {
     map.on('load', () => {
       setMapInstance(map);
 
-      // Try to get user's actual location and fly there
+      // Get user's actual location, fly there, and relocate personnel around them
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
-          (pos) => {
+          async (pos) => {
             const { longitude, latitude } = pos.coords;
             map.flyTo({ center: [longitude, latitude], zoom: 15, duration: 2000 });
 
@@ -68,11 +68,24 @@ export function CommandMap({ children }: { children?: React.ReactNode }) {
               .setLngLat([longitude, latitude])
               .setPopup(popup)
               .addTo(map);
+
+            // Auto-relocate personnel around current position
+            try {
+              const token = localStorage.getItem('accessToken');
+              await fetch(`${import.meta.env.VITE_API_URL}/api/v1/dashboard/relocate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ lat: latitude, lng: longitude }),
+              });
+              console.log(`[map] Personnel relocated around ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+            } catch {
+              // Best-effort — if it fails, officers stay where they were
+            }
           },
           () => {
             // Geolocation denied or failed — stay at El Gouna default
           },
-          { enableHighAccuracy: true, timeout: 5000 }
+          { enableHighAccuracy: true, timeout: 10000 }
         );
       }
     });

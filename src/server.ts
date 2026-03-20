@@ -4,6 +4,7 @@ import { AppError } from './lib/errors.js';
 import authPlugin from './plugins/auth.plugin.js';
 import rbacPlugin from './plugins/rbac.plugin.js';
 import authRoutes from './routes/auth.routes.js';
+import zonesRoutes from './routes/zones.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -31,6 +32,7 @@ export function buildApp() {
 
   // Routes
   app.register(authRoutes);
+  app.register(zonesRoutes);
 
   return app;
 }

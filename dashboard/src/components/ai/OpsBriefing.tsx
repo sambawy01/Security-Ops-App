@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { AlertTriangle, CheckCircle, BarChart3, Brain, ChevronDown, ChevronRight, Shield } from 'lucide-react';
+import { AlertTriangle, CheckCircle, BarChart3, Brain, ChevronDown, ChevronRight, Shield, Send, UserPlus, Megaphone, X, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { useIncidents } from '../../hooks/useIncidents';
 import { useOfficers } from '../../hooks/useOfficers';
 import { useZones } from '../../hooks/useZones';
 import { useAiPatterns, useAiAnomalies, useAiStaffing } from '../../hooks/useAi';
+import { apiFetch } from '../../lib/api';
 
 interface BriefingItem {
   severity: 'critical' | 'warning' | 'success' | 'strategic' | 'ai';
@@ -14,6 +15,8 @@ interface BriefingItem {
   source: string;
   action?: string;
   confidence?: 'High' | 'Medium' | 'Low';
+  incidentId?: string;
+  zoneId?: string;
 }
 
 const severityConfig = {
@@ -25,34 +28,159 @@ const severityConfig = {
 };
 
 function BriefingCard({ item }: { item: BriefingItem }) {
+  const { t } = useTranslation();
   const config = severityConfig[item.severity];
+  const [expanded, setExpanded] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [broadcastTarget, setBroadcastTarget] = useState<string>('all');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSendAction = async (actionType: string) => {
+    setSending(true);
+    try {
+      // If there's a linked incident, post the note/action to it
+      if (item.incidentId) {
+        const recipientLabel = broadcastTarget === 'all' ? 'إذاعة للجميع' :
+          broadcastTarget === 'assistant_manager' ? 'لنواب المدير' :
+          broadcastTarget === 'supervisor' ? 'للمشرفين' :
+          broadcastTarget === 'officer' ? 'للضباط' : 'لجميع الأفراد';
+        await apiFetch(`/api/v1/incidents/${item.incidentId}/updates`, {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'note',
+            content: `[${recipientLabel}] [${actionType}] ${noteText || item.action || item.title}`,
+          }),
+        });
+      }
+      setSent(true);
+      setTimeout(() => { setSent(false); setExpanded(false); setNoteText(''); }, 2000);
+    } catch {
+      // Best effort
+    }
+    setSending(false);
+  };
+
   return (
-    <div className={cn('rounded-lg border p-3', config.border, config.bg)}>
-      <div className="flex items-start gap-2">
-        <span className="text-sm shrink-0 mt-0.5">{config.icon}</span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h4 className="text-xs font-bold text-slate-900">{item.title}</h4>
-            {item.confidence && (
-              <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded',
-                item.confidence === 'High' ? 'bg-green-200 text-green-800' :
-                item.confidence === 'Medium' ? 'bg-yellow-200 text-yellow-800' :
-                'bg-slate-200 text-slate-600'
-              )}>{item.confidence} Confidence</span>
-            )}
-          </div>
-          <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{item.description}</p>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-[10px] text-slate-400">{item.source}</span>
-            {item.action && (
-              <>
-                <span className="text-slate-300">·</span>
-                <span className="text-[10px] font-semibold text-blue-600">Action: {item.action}</span>
-              </>
-            )}
+    <div className={cn('rounded-lg border overflow-hidden transition-all', config.border, config.bg)}>
+      {/* Clickable header */}
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full text-start p-3 hover:brightness-95 transition-all"
+      >
+        <div className="flex items-start gap-2">
+          <span className="text-sm shrink-0 mt-0.5">{config.icon}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs font-bold text-slate-900">{item.title}</h4>
+              {item.confidence && (
+                <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded',
+                  item.confidence === 'High' ? 'bg-green-200 text-green-800' :
+                  item.confidence === 'Medium' ? 'bg-yellow-200 text-yellow-800' :
+                  'bg-slate-200 text-slate-600'
+                )}>{item.confidence}</span>
+              )}
+              <ChevronDown className={cn('h-3 w-3 text-slate-400 ms-auto transition-transform', expanded && 'rotate-180')} />
+            </div>
+            <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{item.description}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-[10px] text-slate-400">{item.source}</span>
+              {item.action && (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-[10px] font-semibold text-blue-600">{item.action}</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </button>
+
+      {/* Expanded action panel */}
+      {expanded && (
+        <div className="border-t border-slate-200 bg-white p-3 space-y-3">
+          {sent ? (
+            <div className="flex items-center gap-2 text-green-700 text-xs font-semibold py-2">
+              <CheckCircle className="h-4 w-4" />
+              تم الإرسال بنجاح
+            </div>
+          ) : (
+            <>
+              {/* Quick action buttons */}
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => handleSendAction('تعيين')}
+                  disabled={sending}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  <UserPlus className="h-3 w-3" />
+                  تعيين ضابط
+                </button>
+                <button
+                  onClick={() => handleSendAction('تعليمات')}
+                  disabled={sending}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-slate-900 text-white text-[11px] font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                >
+                  <MessageSquare className="h-3 w-3" />
+                  إرسال تعليمات
+                </button>
+                <button
+                  onClick={() => handleSendAction('إذاعة')}
+                  disabled={sending}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-orange-600 text-white text-[11px] font-semibold hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                >
+                  <Megaphone className="h-3 w-3" />
+                  إذاعة
+                </button>
+              </div>
+
+              {/* Broadcast target selector */}
+              <div className="flex flex-wrap gap-1">
+                {[
+                  { value: 'all', label: 'الجميع' },
+                  { value: 'assistant_manager', label: 'نواب المدير' },
+                  { value: 'supervisor', label: 'المشرفين' },
+                  { value: 'officer', label: 'الضباط' },
+                ].map((r) => (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => setBroadcastTarget(r.value)}
+                    className={cn(
+                      'px-2 py-0.5 rounded text-[10px] font-medium border transition-colors',
+                      broadcastTarget === r.value
+                        ? 'bg-slate-900 text-white border-slate-900'
+                        : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                    )}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Note input */}
+              <div className="flex gap-1.5">
+                <textarea
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  placeholder="اكتب تعليمات أو ملاحظة..."
+                  rows={2}
+                  className="flex-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[11px] resize-none placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  dir="rtl"
+                />
+                <button
+                  onClick={() => handleSendAction('ملاحظة')}
+                  disabled={!noteText.trim() || sending}
+                  className="self-end p-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 transition-colors"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -108,27 +236,33 @@ export function OpsBriefing() {
   // === REQUIRES ATTENTION ===
 
   // Critical/escalated incidents
+  // Individual critical incidents — each gets its own card so managers can act on each
   const critical = incidentList.filter((i: any) => i.priority === 'critical' && ['open', 'assigned', 'in_progress', 'escalated'].includes(i.status));
-  if (critical.length > 0) {
+  critical.forEach((inc: any) => {
     attentionItems.push({
       severity: 'critical',
-      title: `${critical.length} Critical Incident${critical.length > 1 ? 's' : ''} Active`,
-      description: critical.map((i: any) => i.title).join('. '),
+      title: inc.title || 'Critical Incident',
+      description: `Priority: Critical · Status: ${inc.status} · ${inc.assignedOfficerId ? 'Assigned' : 'Unassigned — needs immediate dispatch'}`,
       source: 'Incident Management',
-      action: 'Immediate response required',
+      action: inc.assignedOfficerId ? 'Monitor or reassign' : 'Assign officer now',
+      incidentId: inc.id,
+      zoneId: inc.zoneId,
     });
-  }
+  });
 
+  // Individual escalated incidents
   const escalated = incidentList.filter((i: any) => i.status === 'escalated');
-  if (escalated.length > 0) {
+  escalated.forEach((inc: any) => {
     attentionItems.push({
       severity: 'critical',
-      title: `${escalated.length} Escalated Incident${escalated.length > 1 ? 's' : ''} — Action Required`,
-      description: `Security Manager must resolve or reassign. If unactioned, auto-escalates to ODH Operations Manager and C-Level.`,
+      title: `⚠ مصعّد: ${inc.title || 'Escalated Incident'}`,
+      description: `Must resolve or reassign. Auto-escalates to ODH Ops Manager and C-Level if no action taken.`,
       source: 'SLA Monitor',
-      action: 'Review and resolve immediately',
+      action: 'Resolve or reassign immediately',
+      incidentId: inc.id,
+      zoneId: inc.zoneId,
     });
-  }
+  });
 
   // SLA breaches
   const slaBreached = incidentList.filter((i: any) => {

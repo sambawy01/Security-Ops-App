@@ -13,8 +13,7 @@ function injectStyles() {
     .officer-marker {
       display: flex; align-items: center; justify-content: center;
       width: 32px; height: 32px; cursor: pointer; position: relative;
-      transform: scale(var(--marker-scale, 1));
-      transition: transform 0.1s ease-out;
+      transform-origin: center center;
     }
     .officer-marker svg {
       filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));

@@ -31,8 +31,7 @@ function injectPulseStyle() {
     }
     .incident-pulse { animation: incident-pulse 1.5s ease-out infinite; }
     .incident-marker {
-      transform: scale(var(--marker-scale, 1));
-      transition: transform 0.1s ease-out;
+      transform-origin: center center;
     }
   `;
   document.head.appendChild(style);

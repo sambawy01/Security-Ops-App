@@ -63,6 +63,17 @@ SCHEDULED → CHECK_IN → ACTIVE → HANDOVER → CHECK_OUT → COMPLETED
 - System automatically: pauses current patrol (if active), transfers open incidents to zone's remaining officers or new incoming officer, updates GPS tracking to show officer in new zone
 - Reassignment logged in audit_logs with reason
 
+**Device unavailable (lost/broken/dead battery):**
+- Officer reports to supervisor or ops room (radio, colleague's phone, or in person)
+- Ops room marks officer as `device_offline` in dashboard — officer stays on duty but:
+  - Removed from smart dispatch candidate pool (can't receive push notifications)
+  - GPS tracking paused — last known location shown with "offline" indicator on command map
+  - Incident assignments routed verbally via radio/supervisor
+- Supervisor or ops room acts as **proxy** — logs incidents, confirms patrol checkpoints, updates tickets on behalf of device-offline officer
+- **Replacement device:** HR admin or supervisor binds a spare tablet to officer's account (auto-revokes old device tokens). Officer logs in with badge + PIN.
+- **Lost device:** Immediate remote token revocation via dashboard. Old device blacklisted in Redis. If found later, officer must re-authenticate.
+- Spare device pool: minimum 10 charged spare tablets maintained at ops room and supervisor stations.
+
 **Late check-in:**
 - Officer checking in >30 min late: shift status remains SCHEDULED until check-in, then moves to ACTIVE
 - No-show alert is sent at +30 min but can be cleared by supervisor if officer communicates delay

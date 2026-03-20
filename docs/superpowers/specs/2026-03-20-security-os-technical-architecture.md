@@ -241,7 +241,7 @@ Uses existing El Gouna security WhatsApp Business account.
 **Personnel & Zones:**
 
 ```
-officers        — id, name_ar, name_en, badge_number, rank, role(officer|supervisor|operator|hr_admin|secretary|assistant_manager|manager), zone_id, phone, device_id, status, photo_path, pin_hash, failed_login_attempts, locked_until
+officers        — id, name_ar, name_en, badge_number, rank, role(officer|supervisor|operator|hr_admin|secretary|assistant_manager|manager), zone_id, phone, device_id, status(active|device_offline|off_duty|suspended), photo_path, pin_hash, failed_login_attempts, locked_until
 zones           — id, name_ar, name_en, boundary(PostGIS polygon), supervisor_id, color
 checkpoints     — id, name_ar, name_en, zone_id, location(PostGIS point), type(gate|patrol|fixed), status
 shifts          — id, officer_id, zone_id, status(scheduled|active|completed|no_show|called_off), scheduled_start, scheduled_end, actual_check_in, actual_check_out, check_in_location(PostGIS), check_out_location(PostGIS), handover_notes, is_overtime(boolean default false), parent_shift_id(nullable FK→shifts)

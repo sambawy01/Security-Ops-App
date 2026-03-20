@@ -1,6 +1,8 @@
 import Fastify, { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import { AppError } from './lib/errors.js';
+import { prisma } from './lib/prisma.js';
+import { redis } from './lib/redis.js';
 import authPlugin from './plugins/auth.plugin.js';
 import rbacPlugin from './plugins/rbac.plugin.js';
 import authRoutes from './routes/auth.routes.js';
@@ -27,8 +29,16 @@ export function buildApp() {
     return reply.status(500).send({ error: 'Internal server error' });
   });
 
-  // Health check placeholder
-  app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+  // Health check — reports PostgreSQL + Redis status
+  app.get('/health', async () => {
+    const dbOk = await prisma.$queryRawUnsafe('SELECT 1').then(() => true).catch(() => false);
+    const redisOk = await redis.ping().then(() => true).catch(() => false);
+    return {
+      status: dbOk && redisOk ? 'ok' : 'degraded',
+      services: { database: dbOk, redis: redisOk },
+      timestamp: new Date().toISOString(),
+    };
+  });
 
   // Auth & RBAC plugins (before routes)
   app.register(authPlugin);

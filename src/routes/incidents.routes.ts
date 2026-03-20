@@ -10,6 +10,8 @@ import {
   addUpdateSchema,
   cancelIncidentSchema,
 } from '../schemas/incidents.schema.js';
+import { categorizeIncident } from '../ai/service.js';
+import { explainDispatch } from '../ai/service.js';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   open: ['assigned', 'cancelled'],
@@ -208,6 +210,18 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
       where: { id: incident.id },
     });
 
+    // Fire-and-forget AI categorization if no category was explicitly provided
+    if (created && created.description && !body.categoryId) {
+      categorizeIncident(created.description).then((suggestion) => {
+        if (suggestion && suggestion.category && suggestion.category !== 'general') {
+          prisma.incident.update({
+            where: { id: created.id, categoryId: null },
+            data: { categoryId: suggestion.category },
+          }).catch(() => {}); // Ignore errors — best-effort AI suggestion
+        }
+      }).catch(() => {});
+    }
+
     return reply.status(201).send({ data: created });
   });
 
@@ -266,6 +280,23 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
         metadata: { newOfficer: body.officerId },
       },
     });
+
+    // Fire-and-forget AI dispatch explanation
+    const assignedOfficer = await prisma.officer.findUnique({
+      where: { id: body.officerId },
+      select: { nameEn: true, badgeNumber: true },
+    });
+    if (assignedOfficer) {
+      explainDispatch(
+        [{ name: assignedOfficer.nameEn, badge: assignedOfficer.badgeNumber, score: 0, distance: 0, workload: 0 }],
+        {
+          title: incident.title,
+          category: incident.categoryId ?? 'general',
+          zone: incident.zoneId ?? 'unknown',
+        },
+        id,
+      ).catch(() => {}); // Ignore errors — best-effort AI explanation
+    }
 
     return { data: updated };
   });

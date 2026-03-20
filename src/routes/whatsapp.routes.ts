@@ -87,13 +87,15 @@ async function processInboundMessage(
     // 2. Resolve category ID from AI triage result
     let categoryId: string | null = null;
     if (triage.category && triage.category !== 'general') {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(triage.category);
+      const orConditions: any[] = [
+        { nameEn: { equals: triage.category, mode: 'insensitive' } },
+      ];
+      if (isUuid) {
+        orConditions.push({ id: triage.category });
+      }
       const category = await prisma.category.findFirst({
-        where: {
-          OR: [
-            { nameEn: { equals: triage.category, mode: 'insensitive' } },
-            { id: triage.category },
-          ],
-        },
+        where: { OR: orConditions },
         select: { id: true },
       });
       if (category) categoryId = category.id;
@@ -113,7 +115,7 @@ async function processInboundMessage(
         status: 'open',
         reporterType: 'whatsapp',
         reporterPhone: senderPhone,
-        zoneId: triage.zone ?? null,
+        zoneId: triage.zone && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(triage.zone) ? triage.zone : null,
       },
     });
 

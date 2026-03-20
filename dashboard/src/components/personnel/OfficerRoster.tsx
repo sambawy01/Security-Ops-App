@@ -51,13 +51,6 @@ export function OfficerRoster() {
     return [...base, ...zones.map((z) => ({ value: z.id, label: z.nameEn }))];
   }, [zones]);
 
-  // Zone name lookup
-  const zoneMap = useMemo(() => {
-    const m = new Map<string, string>();
-    zones?.forEach((z) => m.set(z.id, z.nameEn));
-    return m;
-  }, [zones]);
-
   // Client-side filtering for role and search
   const filtered = useMemo(() => {
     if (!officers) return [];

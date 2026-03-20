@@ -1,12 +1,10 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { useIncidents } from '../../hooks/useIncidents';
 import { useZones } from '../../hooks/useZones';
-import { Input } from '../ui/input';
 import { Select } from '../ui/select';
 import { Badge } from '../ui/badge';
 import { IncidentCard } from './IncidentCard';
-import type { Incident } from '../../types';
 
 interface IncidentQueueProps {
   onSelectIncident: (id: string) => void;

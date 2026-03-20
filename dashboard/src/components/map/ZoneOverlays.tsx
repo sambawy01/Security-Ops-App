@@ -16,7 +16,7 @@ export function ZoneOverlays() {
     // Add or update source
     const source = map.getSource(SOURCE_ID);
     if (source && 'setData' in source) {
-      source.setData(data as GeoJSON.GeoJSON);
+      (source as { setData: (data: GeoJSON.GeoJSON) => void }).setData(data as GeoJSON.GeoJSON);
       return;
     }
 

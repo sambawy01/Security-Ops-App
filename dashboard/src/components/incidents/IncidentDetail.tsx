@@ -66,10 +66,10 @@ interface IncidentDetailData {
   }>;
 }
 
-function getAvailableActions(status: string) {
+function getAvailableActions(status: string): Array<{ action: string; label: string; variant: 'default' | 'destructive' | 'outline'; newStatus?: string }> {
   switch (status) {
     case 'open':
-      return [{ action: 'assign', label: 'Assign Officer', variant: 'default' as const }];
+      return [{ action: 'assign', label: 'Assign Officer', variant: 'default' }];
     case 'assigned':
       return [
         { action: 'acknowledge', label: 'Acknowledge', variant: 'default' as const, newStatus: 'in_progress' },

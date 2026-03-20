@@ -10,7 +10,7 @@ declare module 'fastify' {
 }
 
 const authPlugin: FastifyPluginAsync = async (app) => {
-  app.decorateRequest('user', null);
+  app.decorateRequest('user', undefined as unknown as typeof app extends { user: infer U } ? U : any);
 
   app.addHook('onRequest', async (request: FastifyRequest) => {
     // Skip auth for public routes

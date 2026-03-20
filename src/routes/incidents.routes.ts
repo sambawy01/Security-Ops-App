@@ -391,7 +391,7 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
         authorId: user.officerId,
         type: body.type as any,
         content: body.content,
-        metadata: body.metadata ?? null,
+        metadata: (body.metadata ?? undefined) as any,
       },
     });
 

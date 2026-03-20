@@ -29,24 +29,6 @@ function formatRemaining(ms: number): string {
   return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
 }
 
-function getColorClass(remainingMs: number, deadline: string, createdEstimate?: string): string {
-  if (remainingMs <= 0) return 'sla-breached';
-
-  // Estimate total SLA duration: assume the SLA was set relative to "now minus remaining"
-  // We approximate original SLA as 2x the deadline distance from now at 50%
-  // Better: use the ratio of remaining to total (deadline - creation)
-  const totalMs = new Date(deadline).getTime() - (Date.now() - remainingMs - remainingMs);
-  const pct = totalMs > 0 ? remainingMs / (remainingMs + (Date.now() - (new Date(deadline).getTime() - remainingMs - remainingMs))) : 0;
-
-  // Simpler approach: estimate original SLA as 2 * (time from now to deadline when at 50%)
-  // Since we don't have createdAt, use a heuristic: map absolute time to colors
-  // Actually let's just use fixed thresholds that make practical sense for security ops
-  const remainingMin = remainingMs / 60000;
-
-  if (remainingMin > 60) return 'sla-green';
-  if (remainingMin > 15) return 'sla-yellow';
-  return 'sla-red';
-}
 
 export function SlaTimer({ deadline, label }: SlaTimerProps) {
   const [remaining, setRemaining] = useState<number | null>(

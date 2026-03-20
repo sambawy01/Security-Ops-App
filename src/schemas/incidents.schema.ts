@@ -40,7 +40,7 @@ export const updateIncidentSchema = z.object({
 export const addUpdateSchema = z.object({
   type: z.enum(['note', 'status_change', 'escalation']),
   content: z.string().default(''),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const cancelIncidentSchema = z.object({

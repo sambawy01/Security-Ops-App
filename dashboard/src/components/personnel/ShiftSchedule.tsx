@@ -100,15 +100,6 @@ export function ShiftSchedule() {
     return m;
   }, [officers]);
 
-  // Build the week days array (Date objects for Sun-Sat)
-  const weekDays = useMemo(() => {
-    return DAYS.map((_, i) => {
-      const d = new Date(weekStart);
-      d.setDate(d.getDate() + i);
-      return d;
-    });
-  }, [weekStart]);
-
   // Today's day index (0=Sun)
   const todayIndex = useMemo(() => {
     const now = new Date();

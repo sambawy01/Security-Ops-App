@@ -3,6 +3,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { Layout } from './components/Layout';
+import { DashboardPage } from './pages/DashboardPage';
+import { IncidentsPage } from './pages/IncidentsPage';
+import { PersonnelPage } from './pages/PersonnelPage';
+import { ShiftsPage } from './pages/ShiftsPage';
 
 const queryClient = new QueryClient();
 
@@ -14,27 +19,12 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route element={<ProtectedRoute />}>
-              <Route
-                path="/"
-                element={
-                  <div className="p-8">
-                    <h1 className="text-2xl font-bold">Dashboard</h1>
-                    <p className="text-slate-500">Coming in Task 3...</p>
-                  </div>
-                }
-              />
-              <Route
-                path="/incidents"
-                element={<div className="p-8">Incidents page placeholder</div>}
-              />
-              <Route
-                path="/personnel"
-                element={<div className="p-8">Personnel page placeholder</div>}
-              />
-              <Route
-                path="/shifts"
-                element={<div className="p-8">Shifts page placeholder</div>}
-              />
+              <Route element={<Layout />}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/incidents" element={<IncidentsPage />} />
+                <Route path="/personnel" element={<PersonnelPage />} />
+                <Route path="/shifts" element={<ShiftsPage />} />
+              </Route>
             </Route>
           </Routes>
         </BrowserRouter>

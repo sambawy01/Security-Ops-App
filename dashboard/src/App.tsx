@@ -11,6 +11,7 @@ import { IncidentsPage } from './pages/IncidentsPage';
 import { PersonnelPage } from './pages/PersonnelPage';
 import { ShiftsPage } from './pages/ShiftsPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { BroadcastPage } from './pages/BroadcastPage';
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ export default function App() {
                 <Route path="/personnel" element={<PersonnelPage />} />
                 <Route path="/shifts" element={<ShiftsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/broadcast" element={<BroadcastPage />} />
               </Route>
             </Route>
           </Routes>

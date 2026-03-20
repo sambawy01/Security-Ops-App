@@ -8,6 +8,7 @@ import {
   Shield,
   FileText,
   Globe,
+  Megaphone,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
@@ -20,6 +21,7 @@ const navigation = [
   { key: 'personnel', href: '/personnel', icon: Users },
   { key: 'shifts', href: '/shifts', icon: Clock },
   { key: 'reports', href: '/reports', icon: FileText },
+  { key: 'broadcast', href: '/broadcast', icon: Megaphone },
 ];
 
 const roleLabels: Record<string, string> = {

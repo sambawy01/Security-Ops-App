@@ -14,7 +14,7 @@ app.listen({ port: config.PORT, host: '0.0.0.0' }, async (err, address) => {
     await startWorkers();
     app.log.info('Background workers started');
   } catch (workerErr) {
-    app.log.error('Failed to start background workers:', workerErr);
+    app.log.error(`Failed to start background workers: ${workerErr}`);
     // Non-fatal: the API continues running without workers
   }
 });

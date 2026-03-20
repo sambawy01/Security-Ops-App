@@ -58,5 +58,10 @@ export async function apiFetch<T>(
     throw new ApiError(res.status, body.error || res.statusText);
   }
 
-  return res.json();
+  const json = await res.json();
+  // Backend wraps list responses in { data: [...] } — unwrap automatically
+  if (json && typeof json === 'object' && 'data' in json && Array.isArray(json.data) && Object.keys(json).length === 1) {
+    return json.data as T;
+  }
+  return json as T;
 }

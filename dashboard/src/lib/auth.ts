@@ -21,7 +21,8 @@ export async function login(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(body.error || 'Login failed');
+    const msg = typeof body.error === 'string' ? body.error : body.error?.message || 'Login failed';
+    throw new Error(msg);
   }
 
   const data: LoginResponse = await res.json();

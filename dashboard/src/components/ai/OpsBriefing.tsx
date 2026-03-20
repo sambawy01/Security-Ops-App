@@ -215,7 +215,7 @@ function BriefingSection({ title, icon, items, defaultOpen = true }: {
 }
 
 export function OpsBriefing() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data: incidents } = useIncidents();
   const { data: officers } = useOfficers();
   const { data: zones } = useZones();
@@ -233,38 +233,39 @@ export function OpsBriefing() {
   const officerList = Array.isArray(officers) ? officers : [];
   const zoneList = Array.isArray(zones) ? zones : [];
 
+  const isAr = i18n.language === 'ar';
+  const _ = (ar: string, en: string) => isAr ? ar : en; // Bilingual helper
+
   // === REQUIRES ATTENTION ===
 
-  // Critical/escalated incidents
-  // Individual critical incidents — each gets its own card so managers can act on each
   const critical = incidentList.filter((i: any) => i.priority === 'critical' && ['open', 'assigned', 'in_progress', 'escalated'].includes(i.status));
   critical.forEach((inc: any) => {
     attentionItems.push({
       severity: 'critical',
-      title: inc.title || 'Critical Incident',
-      description: `Priority: Critical · Status: ${inc.status} · ${inc.assignedOfficerId ? 'Assigned' : 'Unassigned — needs immediate dispatch'}`,
-      source: 'Incident Management',
-      action: inc.assignedOfficerId ? 'Monitor or reassign' : 'Assign officer now',
+      title: inc.title || _('بلاغ حرج', 'Critical Incident'),
+      description: _(`الأولوية: حرج · الحالة: ${t('incident.' + inc.status)} · ${inc.assignedOfficerId ? 'مكلف' : 'غير مكلف — يحتاج توزيع فوري'}`,
+        `Priority: Critical · Status: ${inc.status} · ${inc.assignedOfficerId ? 'Assigned' : 'Unassigned — needs dispatch'}`),
+      source: _('إدارة البلاغات', 'Incident Management'),
+      action: inc.assignedOfficerId ? _('متابعة أو إعادة تعيين', 'Monitor or reassign') : _('تعيين ضابط الآن', 'Assign officer now'),
       incidentId: inc.id,
       zoneId: inc.zoneId,
     });
   });
 
-  // Individual escalated incidents
   const escalated = incidentList.filter((i: any) => i.status === 'escalated');
   escalated.forEach((inc: any) => {
     attentionItems.push({
       severity: 'critical',
-      title: `⚠ مصعّد: ${inc.title || 'Escalated Incident'}`,
-      description: `Must resolve or reassign. Auto-escalates to ODH Ops Manager and C-Level if no action taken.`,
-      source: 'SLA Monitor',
-      action: 'Resolve or reassign immediately',
+      title: `⚠ ${_('مصعّد', 'Escalated')}: ${inc.title || _('بلاغ مصعّد', 'Escalated Incident')}`,
+      description: _('يجب الحل أو إعادة التعيين. سيتم التصعيد تلقائياً لمدير العمليات والإدارة العليا إذا لم يتم اتخاذ إجراء.',
+        'Must resolve or reassign. Auto-escalates to ODH Ops Manager and C-Level if no action taken.'),
+      source: _('مراقبة مؤشر الأداء', 'SLA Monitor'),
+      action: _('حل أو إعادة تعيين فوراً', 'Resolve or reassign immediately'),
       incidentId: inc.id,
       zoneId: inc.zoneId,
     });
   });
 
-  // SLA breaches
   const slaBreached = incidentList.filter((i: any) => {
     if (!i.slaResolutionDeadline) return false;
     return new Date(i.slaResolutionDeadline).getTime() < Date.now() && ['open', 'assigned', 'in_progress'].includes(i.status);
@@ -272,27 +273,27 @@ export function OpsBriefing() {
   if (slaBreached.length > 0) {
     attentionItems.push({
       severity: 'critical',
-      title: `${slaBreached.length} SLA Resolution Breach${slaBreached.length > 1 ? 'es' : ''}`,
-      description: `Incidents past resolution deadline. Affects SLA compliance metrics and may trigger ODH management escalation.`,
-      source: 'SLA Monitor',
-      action: 'Assign additional resources',
+      title: _(`${slaBreached.length} تجاوز لمؤشر الأداء`, `${slaBreached.length} SLA Breach${slaBreached.length > 1 ? 'es' : ''}`),
+      description: _('بلاغات تجاوزت مهلة الحل. يؤثر على مؤشرات الأداء وقد يؤدي لتصعيد إداري.',
+        'Incidents past resolution deadline. May trigger ODH management escalation.'),
+      source: _('مراقبة مؤشر الأداء', 'SLA Monitor'),
+      action: _('تخصيص موارد إضافية', 'Assign additional resources'),
     });
   }
 
-  // Officers with no-show pattern
   const offDutyCount = officerList.filter((o: any) => o.status === 'off_duty').length;
   const activeCount = officerList.filter((o: any) => o.status === 'active').length;
   if (activeCount > 0 && activeCount < officerList.length * 0.5) {
     attentionItems.push({
       severity: 'warning',
-      title: 'Low On-Duty Coverage',
-      description: `Only ${activeCount} of ${officerList.length} officers currently on duty (${Math.round(activeCount/officerList.length*100)}%). ${offDutyCount} off duty. Coverage may be insufficient for current incident volume.`,
-      source: 'Personnel Management',
-      action: 'Review shift assignments',
+      title: _('تغطية منخفضة', 'Low On-Duty Coverage'),
+      description: _(`${activeCount} فقط من ${officerList.length} ضابط في الخدمة (${Math.round(activeCount/officerList.length*100)}%). التغطية قد لا تكفي.`,
+        `Only ${activeCount} of ${officerList.length} officers on duty (${Math.round(activeCount/officerList.length*100)}%). Coverage may be insufficient.`),
+      source: _('إدارة الأفراد', 'Personnel Management'),
+      action: _('مراجعة توزيع الورديات', 'Review shift assignments'),
     });
   }
 
-  // High incident zones
   const zoneIncidents = new Map<string, number>();
   incidentList.forEach((i: any) => {
     if (i.zoneId && ['open', 'assigned', 'in_progress', 'escalated'].includes(i.status)) {
@@ -302,12 +303,14 @@ export function OpsBriefing() {
   const hotZones = Array.from(zoneIncidents.entries()).filter(([, count]) => count >= 3);
   hotZones.forEach(([zoneId, count]) => {
     const zone = zoneList.find((z: any) => z.id === zoneId);
+    const zoneName = isAr ? (zone?.nameAr || zone?.nameEn || '') : (zone?.nameEn || '');
     attentionItems.push({
       severity: 'warning',
-      title: `${zone?.nameEn || 'Unknown Zone'} — High Incident Volume`,
-      description: `${count} active incidents in this zone. May need additional patrol coverage or officer reassignment.`,
-      source: zone?.nameEn || 'Zone Analysis',
-      action: 'Dispatch additional officers',
+      title: _(`${zoneName} — حجم بلاغات مرتفع`, `${zoneName} — High Incident Volume`),
+      description: _(`${count} بلاغات نشطة في هذه المنطقة. قد تحتاج تغطية دوريات إضافية.`,
+        `${count} active incidents. May need additional patrol coverage.`),
+      source: zoneName || _('تحليل المناطق', 'Zone Analysis'),
+      action: _('إرسال ضباط إضافيين', 'Dispatch additional officers'),
     });
   });
 
@@ -319,29 +322,31 @@ export function OpsBriefing() {
     const rate = Math.round(resolvedToday / totalToday * 100);
     highlightItems.push({
       severity: 'success',
-      title: `${rate}% Resolution Rate Today`,
-      description: `${resolvedToday} of ${totalToday} incidents resolved. ${totalToday - resolvedToday} still active.`,
-      source: 'All Zones',
+      title: _(`معدل الحل اليوم ${rate}%`, `${rate}% Resolution Rate Today`),
+      description: _(`${resolvedToday} من ${totalToday} بلاغ تم حله. ${totalToday - resolvedToday} لا يزال نشطاً.`,
+        `${resolvedToday} of ${totalToday} incidents resolved. ${totalToday - resolvedToday} still active.`),
+      source: _('جميع المناطق', 'All Zones'),
     });
   }
 
   if (activeCount > 0) {
     highlightItems.push({
       severity: 'success',
-      title: `${activeCount} Officers On Duty`,
-      description: `Security coverage active across ${zoneIncidents.size || zoneList.length} zones. All positions reporting GPS locations.`,
-      source: 'Personnel Management',
+      title: _(`${activeCount} ضابط في الخدمة`, `${activeCount} Officers On Duty`),
+      description: _(`تغطية أمنية نشطة عبر ${zoneIncidents.size || zoneList.length} مناطق. جميع المواقع تبلغ عن مواقع GPS.`,
+        `Security coverage active across ${zoneIncidents.size || zoneList.length} zones. All positions reporting GPS.`),
+      source: _('إدارة الأفراد', 'Personnel Management'),
     });
   }
 
-  // Zone with lowest incidents
   const quietZones = zoneList.filter((z: any) => !zoneIncidents.has(z.id) || (zoneIncidents.get(z.id) || 0) === 0);
   if (quietZones.length > 0) {
     highlightItems.push({
       severity: 'success',
-      title: `${quietZones.length} Zone${quietZones.length > 1 ? 's' : ''} Clear`,
-      description: `${quietZones.map((z: any) => z.nameEn).join(', ')} — zero active incidents. Patrol coverage maintaining security.`,
-      source: 'Zone Analysis',
+      title: _(`${quietZones.length} منطقة آمنة`, `${quietZones.length} Zone${quietZones.length > 1 ? 's' : ''} Clear`),
+      description: _(`${quietZones.map((z: any) => z.nameAr || z.nameEn).join('، ')} — لا بلاغات نشطة.`,
+        `${quietZones.map((z: any) => z.nameEn).join(', ')} — zero active incidents.`),
+      source: _('تحليل المناطق', 'Zone Analysis'),
     });
   }
 
@@ -349,66 +354,73 @@ export function OpsBriefing() {
 
   strategicItems.push({
     severity: 'strategic',
-    title: 'Shift Handover in Progress',
-    description: 'Day shift ending at 18:00. Ensure all open incidents are briefed to incoming night shift supervisors. AI-generated handover brief available.',
-    source: 'Operations',
-    action: 'Review handover brief',
+    title: _('تسليم الوردية جاري', 'Shift Handover in Progress'),
+    description: _('وردية النهار تنتهي الساعة 18:00. تأكد من إحاطة جميع البلاغات المفتوحة لمشرفي الوردية القادمة. ملخص التسليم متاح.',
+      'Day shift ending at 18:00. Ensure all open incidents are briefed to incoming supervisors. AI handover brief available.'),
+    source: _('العمليات', 'Operations'),
+    action: _('مراجعة ملخص التسليم', 'Review handover brief'),
   });
 
   if (totalToday > 10) {
     strategicItems.push({
       severity: 'strategic',
-      title: 'Above-Average Incident Day',
-      description: `${totalToday} incidents today exceeds typical daily volume. Consider requesting additional patrol support for remaining shift hours.`,
-      source: 'Trend Analysis',
-      action: 'Assess staffing needs',
+      title: _('يوم بلاغات فوق المعدل', 'Above-Average Incident Day'),
+      description: _(`${totalToday} بلاغ اليوم يتجاوز المعدل اليومي. فكر في طلب دعم دوريات إضافي.`,
+        `${totalToday} incidents today exceeds typical volume. Consider additional patrol support.`),
+      source: _('تحليل الاتجاهات', 'Trend Analysis'),
+      action: _('تقييم احتياجات التوظيف', 'Assess staffing needs'),
     });
   }
 
   strategicItems.push({
     severity: 'strategic',
-    title: 'Weekly Report Due Sunday',
-    description: 'AI will auto-generate the weekly strategic report at 06:00 Sunday. Ensure all incidents are properly categorized and closed for accurate metrics.',
-    source: 'Reporting',
+    title: _('التقرير الأسبوعي يوم الأحد', 'Weekly Report Due Sunday'),
+    description: _('سيقوم الذكاء الاصطناعي بإنشاء التقرير الاستراتيجي الأسبوعي الساعة 06:00 الأحد. تأكد من تصنيف وإغلاق جميع البلاغات.',
+      'AI will auto-generate the weekly report at 06:00 Sunday. Ensure all incidents are categorized and closed.'),
+    source: _('التقارير', 'Reporting'),
   });
 
   // === AI RECOMMENDATIONS ===
 
   aiItems.push({
     severity: 'ai',
-    title: 'Smart Dispatch Optimization',
-    description: 'Based on incident patterns, relocating 2 officers from South Golf to Marina during evening hours (18:00-22:00) could reduce Marina response times by 35%.',
-    source: 'AI Pattern Analysis',
-    action: 'Apply to next shift schedule',
+    title: _('تحسين التوزيع الذكي', 'Smart Dispatch Optimization'),
+    description: _('بناءً على أنماط البلاغات، نقل ضابطين من جولف جنوب إلى المارينا خلال ساعات المساء (18:00-22:00) قد يقلل وقت الاستجابة بنسبة 35%.',
+      'Relocating 2 officers from South Golf to Marina during evening hours (18:00-22:00) could reduce response times by 35%.'),
+    source: _('تحليل الأنماط', 'AI Pattern Analysis'),
+    action: _('تطبيق على الوردية القادمة', 'Apply to next shift'),
     confidence: 'High',
   });
 
   aiItems.push({
     severity: 'ai',
-    title: 'Patrol Route Adjustment',
-    description: 'Checkpoint 47 in Kafr zone has been skipped 8 times this week. AI recommends adjusting the route to bypass the blocked access point and add a replacement checkpoint nearby.',
-    source: 'Patrol Analytics',
-    action: 'Update Kafr patrol route',
+    title: _('تعديل مسار الدورية', 'Patrol Route Adjustment'),
+    description: _('نقطة تفتيش 47 في منطقة الكفر تم تخطيها 8 مرات هذا الأسبوع. يوصي الذكاء الاصطناعي بتعديل المسار.',
+      'Checkpoint 47 in Kafr skipped 8 times this week. AI recommends route adjustment.'),
+    source: _('تحليل الدوريات', 'Patrol Analytics'),
+    action: _('تحديث مسار الكفر', 'Update Kafr route'),
     confidence: 'High',
   });
 
   if (slaBreached.length > 0) {
     aiItems.push({
       severity: 'ai',
-      title: 'SLA Recovery Plan',
-      description: `${slaBreached.length} breached incidents can be recovered. Prioritize by assigning the nearest available officer to each. Estimated recovery: 45 minutes if acted now.`,
-      source: 'AI Dispatch Engine',
-      action: 'Auto-assign recommended officers',
+      title: _('خطة استرداد مؤشر الأداء', 'SLA Recovery Plan'),
+      description: _(`${slaBreached.length} بلاغات متجاوزة يمكن استردادها. تقدير الاسترداد: 45 دقيقة إذا تم التصرف الآن.`,
+        `${slaBreached.length} breached incidents can be recovered. Estimated: 45 minutes if acted now.`),
+      source: _('محرك التوزيع', 'AI Dispatch Engine'),
+      action: _('تعيين الضباط الموصى بهم', 'Auto-assign recommended officers'),
       confidence: 'Medium',
     });
   }
 
   aiItems.push({
     severity: 'ai',
-    title: 'Predictive Staffing',
-    description: 'Thursday nights historically show 40% more noise complaints in Marina. Recommend pre-positioning 2 additional officers in Marina zone starting Thursday 20:00.',
-    source: 'AI Prediction Model',
-    action: 'Schedule for Thursday',
+    title: _('توظيف تنبؤي', 'Predictive Staffing'),
+    description: _('ليالي الخميس تشهد زيادة 40% في شكاوى الضوضاء في المارينا. يوصى بتعزيز الدوريات بدءاً من الخميس 20:00.',
+      'Thursday nights show 40% more noise complaints in Marina. Recommend 2 additional officers starting Thursday 20:00.'),
+    source: _('نموذج التنبؤ', 'AI Prediction Model'),
+    action: _('جدولة ليوم الخميس', 'Schedule for Thursday'),
     confidence: 'Medium',
   });
 

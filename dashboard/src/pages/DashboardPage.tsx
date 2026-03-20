@@ -271,7 +271,7 @@ function ActivityFeedPanel({
   return (
     <div className={`${panelClass} bottom-3 left-3`}>
       <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-        Recent Activity
+        {t('stats.recentActivity', 'النشاط الأخير')}
       </h3>
       <div className="space-y-1.5 max-h-[140px] overflow-y-auto">
         {updates.length === 0 && (
@@ -335,7 +335,7 @@ function MiniIncidentQueue({ incidents }: { incidents: Incident[] }) {
   return (
     <div className={`${panelClass} bottom-3 right-3`}>
       <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-        Top Incidents
+        {t('stats.topIncidents', 'أهم البلاغات')}
       </h3>
       <div className="space-y-1.5">
         {topIncidents.length === 0 && (

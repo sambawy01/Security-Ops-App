@@ -18,7 +18,7 @@ import { cn } from '../lib/utils';
 const navigation = [
   { key: 'dashboard', href: '/', icon: LayoutDashboard },
   { key: 'incidents', href: '/incidents', icon: AlertTriangle, badge: true },
-  { key: 'personnel', href: '/personnel', icon: Users },
+  { key: 'personnelNav', href: '/personnel', icon: Users },
   { key: 'shifts', href: '/shifts', icon: Clock },
   { key: 'reports', href: '/reports', icon: FileText },
   { key: 'broadcast', href: '/broadcast', icon: Megaphone },

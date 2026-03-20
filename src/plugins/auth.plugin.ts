@@ -14,7 +14,7 @@ const authPlugin: FastifyPluginAsync = async (app) => {
 
   app.addHook('onRequest', async (request: FastifyRequest) => {
     // Skip auth for public routes
-    const publicPrefixes = ['/health', '/api/v1/auth/login', '/api/v1/auth/refresh'];
+    const publicPrefixes = ['/health', '/api/v1/auth/login', '/api/v1/auth/refresh', '/api/v1/whatsapp/webhook'];
     if (publicPrefixes.some(p => request.url.startsWith(p))) return;
 
     const authHeader = request.headers.authorization;

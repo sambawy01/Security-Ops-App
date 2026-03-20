@@ -12,6 +12,7 @@ import {
 } from '../schemas/incidents.schema.js';
 import { categorizeIncident } from '../ai/service.js';
 import { explainDispatch } from '../ai/service.js';
+import { notifyWhatsAppStatusChange } from '../services/whatsapp.service.js';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   open: ['assigned', 'cancelled'],
@@ -281,6 +282,11 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
       },
     });
 
+    // Fire-and-forget: notify WhatsApp reporter of assignment
+    if (incident.reporterType === 'whatsapp' && incident.reporterPhone && updateData.status === 'assigned') {
+      notifyWhatsAppStatusChange(id, 'assigned', incident.reporterPhone).catch(() => {});
+    }
+
     // Fire-and-forget AI dispatch explanation
     const assignedOfficer = await prisma.officer.findUnique({
       where: { id: body.officerId },
@@ -348,6 +354,11 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
           metadata: { old: incident.status, new: body.status },
         },
       });
+
+      // Fire-and-forget: notify WhatsApp reporter of status change
+      if (incident.reporterType === 'whatsapp' && incident.reporterPhone) {
+        notifyWhatsAppStatusChange(id, body.status, incident.reporterPhone).catch(() => {});
+      }
     }
 
     return { data: updated };

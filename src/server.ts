@@ -15,6 +15,7 @@ import dashboardRoutes from './routes/dashboard.routes.js';
 import mediaRoutes from './routes/media.routes.js';
 import syncRoutes from './routes/sync.routes.js';
 import aiRoutes from './routes/ai.routes.js';
+import whatsappRoutes from './routes/whatsapp.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -59,6 +60,7 @@ export function buildApp() {
   app.register(mediaRoutes);
   app.register(syncRoutes);
   app.register(aiRoutes);
+  app.register(whatsappRoutes);
 
   return app;
 }

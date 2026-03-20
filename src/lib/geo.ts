@@ -30,10 +30,11 @@ export async function getOfficerLatestLocation(
 
 export async function getAllActiveOfficerLocations() {
   return prisma.$queryRaw<
-    { officer_id: string; lat: number; lng: number; timestamp: Date }[]
+    { officer_id: string; name_en: string; name_ar: string; badge_number: string; role: string; rank: string; lat: number; lng: number; timestamp: Date }[]
   >`
     SELECT DISTINCT ON (ol.officer_id)
-      ol.officer_id, ST_Y(ol.location) as lat, ST_X(ol.location) as lng, ol.timestamp
+      ol.officer_id, o.name_en, o.name_ar, o.badge_number, o.role, o.rank,
+      ST_Y(ol.location) as lat, ST_X(ol.location) as lng, ol.timestamp
     FROM officer_locations ol
     JOIN officers o ON o.id = ol.officer_id
     WHERE o.status = 'active'

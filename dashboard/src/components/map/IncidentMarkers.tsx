@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useMap } from './MapContext';
 import { useIncidentsGeoJSON } from '../../hooks/useIncidents';
@@ -37,16 +37,28 @@ function injectPulseStyle() {
 export function IncidentMarkers() {
   const map = useMap();
   const { data } = useIncidentsGeoJSON();
-  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const dataHashRef = useRef<string>('');
 
   useEffect(() => {
     if (!map || !data) return;
     injectPulseStyle();
 
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
-
     const features = data.features ?? [];
+
+    // Only rebuild if incident set changed
+    const newHash = JSON.stringify(features.map((f: any) => f.properties?.id));
+    const dataChanged = newHash !== dataHashRef.current;
+    dataHashRef.current = newHash;
+
+    if (!dataChanged && markersRef.current.size > 0) {
+      // Positions don't change for incidents — skip rebuild
+      return;
+    }
+
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current.clear();
+
     features.forEach((feature) => {
       const geom = feature.geometry;
       if (geom.type !== 'Point') return;
@@ -120,17 +132,17 @@ export function IncidentMarkers() {
         </div>`,
       );
 
-      const marker = new maplibregl.Marker({ element: el })
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
         .setLngLat([lng, lat])
         .setPopup(popup)
         .addTo(map);
 
-      markersRef.current.push(marker);
+      markersRef.current.set(incidentId || String(Math.random()), marker);
     });
 
     return () => {
       markersRef.current.forEach((m) => m.remove());
-      markersRef.current = [];
+      markersRef.current.clear();
     };
   }, [map, data]);
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useMap } from './MapContext';
 import { useOfficerLocations } from '../../hooks/useOfficers';
@@ -53,14 +53,32 @@ const ROLE_COLORS: Record<string, string> = {
 export function OfficerMarkers() {
   const map = useMap();
   const { data: locations } = useOfficerLocations();
-  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const dataHashRef = useRef<string>('');
 
   useEffect(() => {
     if (!map || !locations) return;
     injectStyles();
 
+    // Only rebuild markers if data actually changed
+    const newHash = JSON.stringify(locations.map((l: any) => l.officer_id));
+    const dataChanged = newHash !== dataHashRef.current;
+    dataHashRef.current = newHash;
+
+    if (!dataChanged && markersRef.current.size > 0) {
+      // Just update positions without removing/recreating markers
+      locations.forEach((loc: any) => {
+        const existing = markersRef.current.get(loc.officer_id);
+        if (existing && loc.lat != null && loc.lng != null) {
+          existing.setLngLat([loc.lng, loc.lat]);
+        }
+      });
+      return;
+    }
+
+    // Full rebuild — only when officers change
     markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+    markersRef.current.clear();
 
     locations.forEach((loc: any) => {
       if (loc.lat == null || loc.lng == null) return;
@@ -123,12 +141,12 @@ export function OfficerMarkers() {
         .setPopup(popup)
         .addTo(map);
 
-      markersRef.current.push(marker);
+      markersRef.current.set(loc.officer_id, marker);
     });
 
     return () => {
       markersRef.current.forEach((m) => m.remove());
-      markersRef.current = [];
+      markersRef.current.clear();
     };
   }, [map, locations]);
 

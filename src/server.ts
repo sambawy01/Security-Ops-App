@@ -8,6 +8,7 @@ import zonesRoutes from './routes/zones.routes.js';
 import officersRoutes from './routes/officers.routes.js';
 import incidentsRoutes from './routes/incidents.routes.js';
 import shiftsRoutes from './routes/shifts.routes.js';
+import patrolsRoutes from './routes/patrols.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -39,6 +40,7 @@ export function buildApp() {
   app.register(officersRoutes);
   app.register(incidentsRoutes);
   app.register(shiftsRoutes);
+  app.register(patrolsRoutes);
 
   return app;
 }

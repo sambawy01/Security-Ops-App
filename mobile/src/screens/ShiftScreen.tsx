@@ -13,8 +13,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useCurrentLocation } from '../hooks/useLocation';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { useAuth } from '../hooks/useAuth';
 import { apiFetch } from '../lib/api';
 import { queueAction } from '../lib/sync';
+import { startTracking, stopTracking } from '../lib/location';
 import type { Shift } from '../types';
 
 export function ShiftScreen() {
@@ -23,6 +25,7 @@ export function ShiftScreen() {
   const route = useRoute<any>();
   const shift: Shift = route.params?.shift;
 
+  const { user } = useAuth();
   const { location, error: locationError, loading: locationLoading } = useCurrentLocation();
   const isOnline = useOnlineStatus();
 
@@ -63,6 +66,13 @@ export function ShiftScreen() {
         });
       }
 
+      // Start background GPS tracking after successful check-in
+      if (user?.id) {
+        startTracking(user.id).catch(() => {
+          // Tracking is best-effort; do not block check-in success
+        });
+      }
+
       Alert.alert('\u2705', t('shift.checkInSuccess'), [
         { text: t('common.ok'), onPress: () => navigation.goBack() },
       ]);
@@ -98,6 +108,11 @@ export function ShiftScreen() {
           ...payload,
         });
       }
+
+      // Stop background GPS tracking after successful check-out
+      stopTracking().catch(() => {
+        // Best-effort stop
+      });
 
       Alert.alert('\u2705', t('shift.checkOutSuccess'), [
         { text: t('common.ok'), onPress: () => navigation.goBack() },

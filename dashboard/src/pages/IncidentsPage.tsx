@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IncidentQueue } from '../components/incidents/IncidentQueue';
 import { IncidentDetail } from '../components/incidents/IncidentDetail';
 import { Inbox } from 'lucide-react';
 
 export function IncidentsPage() {
+  const { t } = useTranslation();
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(
     null
   );
@@ -11,7 +13,7 @@ export function IncidentsPage() {
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
       {/* Left panel: Incident Queue */}
-      <div className="w-[45%] flex-shrink-0 border-r border-slate-200 bg-slate-50/50 overflow-hidden">
+      <div className="w-[45%] flex-shrink-0 border-e border-slate-200 bg-slate-50/50 overflow-hidden">
         <IncidentQueue
           onSelectIncident={setSelectedIncidentId}
           selectedId={selectedIncidentId}
@@ -29,7 +31,7 @@ export function IncidentsPage() {
           <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-400">
             <Inbox className="h-12 w-12 stroke-1" />
             <p className="text-sm font-medium">
-              Select an incident from the list
+              {t('incident.selectIncident')}
             </p>
           </div>
         )}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, CheckCircle, BarChart3, Brain, ChevronDown, ChevronRight, Shield } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { useIncidents } from '../../hooks/useIncidents';
 import { useOfficers } from '../../hooks/useOfficers';
@@ -86,6 +87,7 @@ function BriefingSection({ title, icon, items, defaultOpen = true }: {
 }
 
 export function OpsBriefing() {
+  const { t } = useTranslation();
   const { data: incidents } = useIncidents();
   const { data: officers } = useOfficers();
   const { data: zones } = useZones();
@@ -291,32 +293,32 @@ export function OpsBriefing() {
     <div className="h-full overflow-y-auto">
       <div className="flex items-center gap-2 mb-4 px-1">
         <Shield className="h-4 w-4 text-slate-500" />
-        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Operations Intelligence Briefing</h3>
+        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">{t('oib.title')}</h3>
       </div>
 
       <BriefingSection
-        title="Requires Attention"
+        title={t('oib.requiresAttention')}
         icon={<AlertTriangle className="h-3 w-3 text-red-500" />}
         items={attentionItems}
         defaultOpen={true}
       />
 
       <BriefingSection
-        title="Performance Highlights"
+        title={t('oib.performanceHighlights')}
         icon={<CheckCircle className="h-3 w-3 text-green-500" />}
         items={highlightItems}
         defaultOpen={true}
       />
 
       <BriefingSection
-        title="Strategic Outlook"
+        title={t('oib.strategicOutlook')}
         icon={<BarChart3 className="h-3 w-3 text-blue-500" />}
         items={strategicItems}
         defaultOpen={false}
       />
 
       <BriefingSection
-        title="AI Recommendations"
+        title={t('oib.aiRecommendations')}
         icon={<Brain className="h-3 w-3 text-purple-500" />}
         items={aiItems}
         defaultOpen={false}
@@ -324,7 +326,7 @@ export function OpsBriefing() {
 
       <div className="mt-4 pt-3 border-t border-slate-200 px-1">
         <p className="text-[9px] text-slate-400 text-center">
-          Security OS · Real-time AI operations intelligence · Data refreshes every 30s
+          {t('oib.dataRefresh')}
         </p>
       </div>
     </div>

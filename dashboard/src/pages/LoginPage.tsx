@@ -2,11 +2,13 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, IdCard, Lock, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 
 export function LoginPage() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [badgeNumber, setBadgeNumber] = useState('');
   const [pin, setPin] = useState('');
@@ -27,7 +29,7 @@ export function LoginPage() {
       await login(badgeNumber, pin);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : t('login.error'));
     } finally {
       setSubmitting(false);
     }
@@ -42,10 +44,10 @@ export function LoginPage() {
             <Shield className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Security OS
+            {t('login.title')}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            El Gouna Security Operations
+            {t('login.subtitle')}
           </p>
         </div>
 
@@ -57,10 +59,10 @@ export function LoginPage() {
               htmlFor="badgeNumber"
               className="block text-sm font-medium text-slate-700 mb-1"
             >
-              Badge Number
+              {t('login.badge')}
             </label>
             <div className="relative">
-              <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <IdCard className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 id="badgeNumber"
                 type="text"
@@ -69,7 +71,7 @@ export function LoginPage() {
                 placeholder="e.g. MGR-001"
                 required
                 autoComplete="username"
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-md text-sm
+                className="w-full ps-10 pe-4 py-2.5 border border-slate-300 rounded-md text-sm
                            placeholder:text-slate-400 focus:outline-none focus:ring-2
                            focus:ring-slate-900 focus:border-transparent"
               />
@@ -82,10 +84,10 @@ export function LoginPage() {
               htmlFor="pin"
               className="block text-sm font-medium text-slate-700 mb-1"
             >
-              PIN
+              {t('login.pin')}
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Lock className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 id="pin"
                 type="password"
@@ -95,7 +97,7 @@ export function LoginPage() {
                 required
                 maxLength={8}
                 autoComplete="current-password"
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-md text-sm
+                className="w-full ps-10 pe-4 py-2.5 border border-slate-300 rounded-md text-sm
                            placeholder:text-slate-400 focus:outline-none focus:ring-2
                            focus:ring-slate-900 focus:border-transparent"
               />
@@ -115,10 +117,10 @@ export function LoginPage() {
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Signing in...
+                {t('login.submit')}...
               </>
             ) : (
-              'Sign in'
+              t('login.submit')
             )}
           </button>
 

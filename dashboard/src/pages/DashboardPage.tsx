@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CommandMap } from '../components/map/CommandMap';
 import { ZoneOverlays } from '../components/map/ZoneOverlays';
 import { OfficerMarkers } from '../components/map/OfficerMarkers';
@@ -370,6 +371,7 @@ function MiniIncidentQueue({ incidents }: { incidents: Incident[] }) {
 /* ------------------------------------------------------------------ */
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const { data: statsData } = useDashboardStats();
   const { data: incidents = [] } = useIncidents();
   const { data: officers = [] } = useOfficers();
@@ -390,7 +392,7 @@ export function DashboardPage() {
             <span className="text-sm font-bold text-slate-900">
               {incidentList.filter((i: any) => ['open','assigned','in_progress','escalated'].includes(i.status)).length}
             </span>
-            <span className="text-xs text-slate-500">Open Incidents</span>
+            <span className="text-xs text-slate-500">{t('stats.openIncidents')}</span>
           </div>
           <div className="flex gap-1">
             {['critical','high','medium','low'].map(p => {
@@ -410,7 +412,7 @@ export function DashboardPage() {
             <span className="text-sm font-bold text-slate-900">
               {officerList.filter((o: any) => o.status === 'active').length}
             </span>
-            <span className="text-xs text-slate-500">On Duty</span>
+            <span className="text-xs text-slate-500">{t('stats.onDuty')}</span>
           </div>
         </div>
 
@@ -453,7 +455,7 @@ export function DashboardPage() {
         </div>
 
         {/* OIB Panel — separated, scrollable */}
-        <div className="w-[380px] shrink-0 border-l border-slate-200 bg-white overflow-y-auto p-4">
+        <div className="w-[380px] shrink-0 border-s border-slate-200 bg-white overflow-y-auto p-4">
           <OpsBriefing />
         </div>
       </div>

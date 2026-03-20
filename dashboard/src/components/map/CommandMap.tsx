@@ -1,6 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useRef, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MapContext } from './MapContext';
 import { Navigation } from 'lucide-react';
 
@@ -9,6 +10,7 @@ const DEFAULT_CENTER: [number, number] = [33.67128, 27.39747];
 const DEFAULT_ZOOM = 12.5;
 
 export function CommandMap({ children }: { children?: React.ReactNode }) {
+  const { t } = useTranslation();
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null);
@@ -117,21 +119,21 @@ export function CommandMap({ children }: { children?: React.ReactNode }) {
       <div ref={mapContainer} className="w-full h-full" />
 
       {/* Quick navigation buttons */}
-      <div className="absolute bottom-4 left-4 z-10 flex gap-2 pointer-events-auto">
+      <div className="absolute bottom-4 start-4 z-10 flex gap-2 pointer-events-auto">
         <button
           onClick={flyToElGouna}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/90 backdrop-blur-sm border border-slate-200 shadow-lg text-xs font-medium text-slate-700 hover:bg-white transition-colors"
-          title="Go to El Gouna"
+          title={t('map.elGouna')}
         >
-          🏖️ El Gouna
+          🏖️ {t('map.elGouna')}
         </button>
         <button
           onClick={flyToMe}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-blue-600 border border-blue-700 shadow-lg text-xs font-medium text-white hover:bg-blue-700 transition-colors"
-          title="Go to my location"
+          title={t('map.myLocation')}
         >
           <Navigation className="h-3 w-3" />
-          My Location
+          {t('map.myLocation')}
         </button>
       </div>
 

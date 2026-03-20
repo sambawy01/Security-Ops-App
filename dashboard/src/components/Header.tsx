@@ -1,12 +1,14 @@
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { Badge } from './ui/badge';
 
-const pageTitles: Record<string, string> = {
-  '/': 'Dashboard',
-  '/incidents': 'Incidents',
-  '/personnel': 'Personnel',
-  '/shifts': 'Shifts',
+const pageTitleKeys: Record<string, string> = {
+  '/': 'dashboard',
+  '/incidents': 'incidents',
+  '/personnel': 'personnel',
+  '/shifts': 'shifts',
+  '/reports': 'reports',
 };
 
 const roleLabels: Record<string, string> = {
@@ -24,8 +26,10 @@ const roleVariant: Record<string, 'default' | 'success' | 'medium'> = {
 export function Header() {
   const location = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
-  const title = pageTitles[location.pathname] ?? 'Security OS';
+  const titleKey = pageTitleKeys[location.pathname] ?? 'dashboard';
+  const title = t(titleKey);
   const isSupervisor = user?.role === 'supervisor';
 
   return (

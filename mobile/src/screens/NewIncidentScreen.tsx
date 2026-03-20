@@ -176,7 +176,6 @@ export function NewIncidentScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryScroll}
-            inverted
           >
             {categories.map((cat) => (
               <TouchableOpacity

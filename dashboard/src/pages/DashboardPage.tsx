@@ -228,6 +228,7 @@ function ActivityFeedPanel({
   stats: Record<string, unknown> | undefined;
   incidents: Incident[];
 }) {
+  const { t } = useTranslation();
   // Try to use recentUpdates from dashboard stats; fall back to deriving from incidents
   const updates: RecentUpdate[] = useMemo(() => {
     if (stats && Array.isArray((stats as any).recentUpdates)) {
@@ -319,6 +320,7 @@ const priorityDotColor: Record<string, string> = {
 };
 
 function MiniIncidentQueue({ incidents }: { incidents: Incident[] }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const topIncidents = useMemo(() => {

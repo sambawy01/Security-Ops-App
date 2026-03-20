@@ -1,0 +1,453 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [postgis]
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  officer
+  supervisor
+  operator
+  hr_admin
+  secretary
+  assistant_manager
+  manager
+}
+
+enum OfficerStatus {
+  active
+  device_offline
+  off_duty
+  suspended
+}
+
+enum ShiftStatus {
+  scheduled
+  active
+  completed
+  no_show
+  called_off
+}
+
+enum CheckpointType {
+  gate
+  patrol
+  fixed
+}
+
+enum Priority {
+  critical
+  high
+  medium
+  low
+}
+
+enum IncidentStatus {
+  open
+  assigned
+  in_progress
+  escalated
+  resolved
+  closed
+  cancelled
+}
+
+enum ReporterType {
+  officer
+  resident
+  whatsapp
+}
+
+enum IncidentUpdateType {
+  note
+  photo
+  voice_note
+  status_change
+  escalation
+  assignment
+}
+
+enum MediaType {
+  photo
+  voice_note
+}
+
+enum SyncConflictStatus {
+  none
+  resolved
+  rejected
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model Officer {
+  id                  String        @id @default(uuid()) @db.Uuid
+  nameAr              String        @map("name_ar")
+  nameEn              String        @map("name_en")
+  badgeNumber         String        @unique @map("badge_number")
+  rank                String        @default("")
+  role                Role          @default(officer)
+  zoneId              String?       @map("zone_id") @db.Uuid
+  phone               String        @default("")
+  deviceId            String?       @map("device_id")
+  status              OfficerStatus @default(off_duty)
+  photoPath           String?       @map("photo_path")
+  pinHash             String        @map("pin_hash")
+  failedLoginAttempts Int           @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?     @map("locked_until")
+  skills              String[]      @default([])
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  zone                Zone?              @relation("ZoneOfficers", fields: [zoneId], references: [id])
+  supervisedZone      Zone?              @relation("ZoneSupervisor")
+  shifts              Shift[]
+  assignedIncidents   Incident[]         @relation("AssignedOfficer")
+  createdIncidents    Incident[]         @relation("CreatedByOfficer")
+  incidentUpdates     IncidentUpdate[]
+  locations           OfficerLocation[]
+  patrolLogs          PatrolLog[]
+  acceptedSuggestions AiSuggestion[]     @relation("AcceptedBy")
+
+  @@map("officers")
+}
+
+model Zone {
+  id           String                                     @id @default(uuid()) @db.Uuid
+  nameAr       String                                     @map("name_ar")
+  nameEn       String                                     @map("name_en")
+  boundary     Unsupported("geometry(Polygon, 4326)")?
+  supervisorId String?                                    @unique @map("supervisor_id") @db.Uuid
+  color        String                                     @default("#3b82f6")
+  createdAt    DateTime                                   @default(now()) @map("created_at")
+
+  supervisor   Officer?      @relation("ZoneSupervisor", fields: [supervisorId], references: [id])
+  officers     Officer[]     @relation("ZoneOfficers")
+  checkpoints  Checkpoint[]
+  shifts       Shift[]
+  incidents    Incident[]
+  patrolRoutes PatrolRoute[]
+
+  @@map("zones")
+}
+
+model Checkpoint {
+  id        String                                @id @default(uuid()) @db.Uuid
+  nameAr    String                                @map("name_ar")
+  nameEn    String                                @map("name_en")
+  zoneId    String                                @map("zone_id") @db.Uuid
+  location  Unsupported("geometry(Point, 4326)")
+  type      CheckpointType
+  status    String                                @default("active")
+  createdAt DateTime                              @default(now()) @map("created_at")
+
+  zone              Zone                    @relation(fields: [zoneId], references: [id])
+  routeCheckpoints  PatrolRouteCheckpoint[]
+  patrolCheckpoints PatrolCheckpointLog[]
+
+  @@map("checkpoints")
+}
+
+model Shift {
+  id               String                                  @id @default(uuid()) @db.Uuid
+  officerId        String                                  @map("officer_id") @db.Uuid
+  zoneId           String                                  @map("zone_id") @db.Uuid
+  status           ShiftStatus                             @default(scheduled)
+  scheduledStart   DateTime                                @map("scheduled_start")
+  scheduledEnd     DateTime                                @map("scheduled_end")
+  actualCheckIn    DateTime?                               @map("actual_check_in")
+  actualCheckOut   DateTime?                               @map("actual_check_out")
+  checkInLocation  Unsupported("geometry(Point, 4326)")?   @map("check_in_location")
+  checkOutLocation Unsupported("geometry(Point, 4326)")?   @map("check_out_location")
+  handoverNotes    String?                                 @map("handover_notes")
+  isOvertime       Boolean                                 @default(false) @map("is_overtime")
+  parentShiftId    String?                                 @map("parent_shift_id") @db.Uuid
+  createdAt        DateTime                                @default(now()) @map("created_at")
+
+  officer     Officer     @relation(fields: [officerId], references: [id])
+  zone        Zone        @relation(fields: [zoneId], references: [id])
+  parentShift Shift?      @relation("ShiftOvertime", fields: [parentShiftId], references: [id])
+  childShifts Shift[]     @relation("ShiftOvertime")
+  patrolLogs  PatrolLog[]
+
+  @@index([officerId, scheduledStart])
+  @@index([zoneId, status])
+  @@map("shifts")
+}
+
+model PatrolRoute {
+  id                   String   @id @default(uuid()) @db.Uuid
+  name                 String
+  zoneId               String   @map("zone_id") @db.Uuid
+  estimatedDurationMin Int      @map("estimated_duration_min")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  zone        Zone                    @relation(fields: [zoneId], references: [id])
+  checkpoints PatrolRouteCheckpoint[]
+  patrolLogs  PatrolLog[]
+
+  @@map("patrol_routes")
+}
+
+model PatrolRouteCheckpoint {
+  id               String @id @default(uuid()) @db.Uuid
+  routeId          String @map("route_id") @db.Uuid
+  checkpointId     String @map("checkpoint_id") @db.Uuid
+  sequenceOrder    Int    @map("sequence_order")
+  expectedDwellMin Int    @default(0) @map("expected_dwell_min")
+
+  route      PatrolRoute @relation(fields: [routeId], references: [id])
+  checkpoint Checkpoint  @relation(fields: [checkpointId], references: [id])
+
+  @@unique([routeId, sequenceOrder])
+  @@map("patrol_route_checkpoints")
+}
+
+model PatrolLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  shiftId     String    @map("shift_id") @db.Uuid
+  routeId     String    @map("route_id") @db.Uuid
+  officerId   String    @map("officer_id") @db.Uuid
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  shift       Shift                 @relation(fields: [shiftId], references: [id])
+  route       PatrolRoute           @relation(fields: [routeId], references: [id])
+  officer     Officer               @relation(fields: [officerId], references: [id])
+  checkpoints PatrolCheckpointLog[]
+
+  @@map("patrol_logs")
+}
+
+model PatrolCheckpointLog {
+  id           String                                @id @default(uuid()) @db.Uuid
+  patrolLogId  String                                @map("patrol_log_id") @db.Uuid
+  checkpointId String                                @map("checkpoint_id") @db.Uuid
+  arrivedAt    DateTime?                             @map("arrived_at")
+  gpsLocation  Unsupported("geometry(Point, 4326)")? @map("gps_location")
+  confirmed    Boolean                               @default(false)
+  skipReason   String?                               @map("skip_reason")
+
+  patrolLog  PatrolLog  @relation(fields: [patrolLogId], references: [id])
+  checkpoint Checkpoint @relation(fields: [checkpointId], references: [id])
+
+  @@map("patrol_checkpoints")
+}
+
+model OfficerLocation {
+  id             String                               @id @default(uuid()) @db.Uuid
+  officerId      String                               @map("officer_id") @db.Uuid
+  location       Unsupported("geometry(Point, 4326)")
+  timestamp      DateTime                             @default(now())
+  accuracyMeters Float?                               @map("accuracy_meters")
+
+  officer Officer @relation(fields: [officerId], references: [id])
+
+  @@index([officerId, timestamp(sort: Desc)])
+  @@map("officer_locations")
+}
+
+model Category {
+  id              String   @id @default(uuid()) @db.Uuid
+  nameAr          String   @map("name_ar")
+  nameEn          String   @map("name_en")
+  parentId        String?  @map("parent_id") @db.Uuid
+  defaultPriority Priority @default(medium) @map("default_priority")
+  icon            String   @default("alert-circle")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryTree")
+  incidents Incident[]
+  slaRules  SlaRule[]
+
+  @@map("categories")
+}
+
+model Incident {
+  id                    String                                @id @default(uuid()) @db.Uuid
+  title                 String
+  description           String                                @default("")
+  categoryId            String?                               @map("category_id") @db.Uuid
+  priority              Priority                              @default(medium)
+  status                IncidentStatus                        @default(open)
+  zoneId                String?                               @map("zone_id") @db.Uuid
+  location              Unsupported("geometry(Point, 4326)")?
+  reporterType          ReporterType                          @default(officer) @map("reporter_type")
+  reporterPhone         String?                               @map("reporter_phone")
+  createdByOfficerId    String?                               @map("created_by_officer_id") @db.Uuid
+  assignedOfficerId     String?                               @map("assigned_officer_id") @db.Uuid
+  relatedIncidentId     String?                               @map("related_incident_id") @db.Uuid
+  awaitingExternal      Boolean                               @default(false) @map("awaiting_external")
+  cancelReason          String?                               @map("cancel_reason")
+  createdAt             DateTime                              @default(now()) @map("created_at")
+  assignedAt            DateTime?                             @map("assigned_at")
+  slaResponseDeadline   DateTime?                             @map("sla_response_deadline")
+  slaResolutionDeadline DateTime?                             @map("sla_resolution_deadline")
+  resolvedAt            DateTime?                             @map("resolved_at")
+  closedAt              DateTime?                             @map("closed_at")
+
+  category         Category?        @relation(fields: [categoryId], references: [id])
+  zone             Zone?            @relation(fields: [zoneId], references: [id])
+  createdByOfficer Officer?         @relation("CreatedByOfficer", fields: [createdByOfficerId], references: [id])
+  assignedOfficer  Officer?         @relation("AssignedOfficer", fields: [assignedOfficerId], references: [id])
+  relatedIncident  Incident?        @relation("RelatedIncidents", fields: [relatedIncidentId], references: [id])
+  relatedIncidents Incident[]       @relation("RelatedIncidents")
+  updates          IncidentUpdate[]
+  media            IncidentMedia[]
+  aiSuggestions    AiSuggestion[]
+  whatsappMessages WhatsappMessage[]
+
+  @@index([status, zoneId, priority])
+  @@index([assignedOfficerId, status])
+  @@map("incidents")
+}
+
+model IncidentUpdate {
+  id         String             @id @default(uuid()) @db.Uuid
+  incidentId String             @map("incident_id") @db.Uuid
+  authorId   String?            @map("author_id") @db.Uuid
+  type       IncidentUpdateType
+  content    String             @default("")
+  metadata   Json?
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+  author   Officer? @relation(fields: [authorId], references: [id])
+
+  @@index([incidentId, createdAt])
+  @@map("incident_updates")
+}
+
+model IncidentMedia {
+  id         String    @id @default(uuid()) @db.Uuid
+  incidentId String    @map("incident_id") @db.Uuid
+  type       MediaType
+  filePath   String    @map("file_path")
+  fileSize   Int       @default(0) @map("file_size")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+
+  @@map("incident_media")
+}
+
+model SlaRule {
+  id                String   @id @default(uuid()) @db.Uuid
+  categoryId        String   @map("category_id") @db.Uuid
+  priority          Priority
+  responseMinutes   Int      @map("response_minutes")
+  resolutionMinutes Int      @map("resolution_minutes")
+  escalationChain   Json     @default("[]") @map("escalation_chain")
+
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([categoryId, priority])
+  @@map("sla_rules")
+}
+
+model AiSuggestion {
+  id             String   @id @default(uuid()) @db.Uuid
+  incidentId     String?  @map("incident_id") @db.Uuid
+  type           String
+  suggestionText String   @map("suggestion_text")
+  accepted       Boolean?
+  acceptedById   String?  @map("accepted_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  incident         Incident? @relation(fields: [incidentId], references: [id])
+  acceptedByOfficer Officer?  @relation("AcceptedBy", fields: [acceptedById], references: [id])
+
+  @@map("ai_suggestions")
+}
+
+model WhatsappMessage {
+  id           String   @id @default(uuid()) @db.Uuid
+  incidentId   String?  @map("incident_id") @db.Uuid
+  direction    String
+  senderPhone  String   @map("sender_phone")
+  content      String   @default("")
+  mediaUrl     String?  @map("media_url")
+  waMessageId  String?  @map("wa_message_id")
+  templateName String?  @map("template_name")
+  status       String   @default("sent")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  incident Incident? @relation(fields: [incidentId], references: [id])
+
+  @@map("whatsapp_messages")
+}
+
+model AiAnalysis {
+  id         String   @id @default(uuid()) @db.Uuid
+  type       String
+  scope      String
+  zoneId     String?  @map("zone_id")
+  content    Json
+  confidence Float    @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("ai_analyses")
+}
+
+model GeneratedReport {
+  id          String   @id @default(uuid()) @db.Uuid
+  type        String
+  periodStart DateTime @map("period_start")
+  periodEnd   DateTime @map("period_end")
+  content     Json
+  pdfPath     String?  @map("pdf_path")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("generated_reports")
+}
+
+model AiConversation {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id")
+  messages  Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ai_conversations")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id")
+  actorRole  String?  @map("actor_role")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  oldValue   Json?    @map("old_value")
+  newValue   Json?    @map("new_value")
+  ipAddress  String?  @map("ip_address")
+  deviceId   String?  @map("device_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model SyncQueue {
+  id               String             @id @default(uuid()) @db.Uuid
+  deviceId         String             @map("device_id")
+  officerId        String             @map("officer_id")
+  actionType       String             @map("action_type")
+  payload          Json
+  serverSeq        BigInt?            @map("server_seq")
+  createdAtDevice  DateTime           @map("created_at_device")
+  receivedAtServer DateTime?          @map("received_at_server")
+  processedAt      DateTime?          @map("processed_at")
+  conflictStatus   SyncConflictStatus @default(none) @map("conflict_status")
+
+  @@map("sync_queue")
+}

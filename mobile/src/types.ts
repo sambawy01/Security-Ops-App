@@ -46,6 +46,7 @@ export interface PatrolRoute {
   name: string;
   zoneId: string;
   estimatedDurationMin: number;
+  checkpoints?: PatrolCheckpoint[];
 }
 
 export interface PatrolCheckpoint {
@@ -57,6 +58,14 @@ export interface PatrolCheckpoint {
   expectedDwellMin: number;
   lat?: number;
   lng?: number;
+}
+
+export interface PatrolLog {
+  id: string;
+  routeId: string;
+  shiftId: string;
+  startedAt: string;
+  completedAt?: string | null;
 }
 
 export interface QueuedAction {

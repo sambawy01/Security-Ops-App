@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes.js';
 import zonesRoutes from './routes/zones.routes.js';
 import officersRoutes from './routes/officers.routes.js';
 import incidentsRoutes from './routes/incidents.routes.js';
+import shiftsRoutes from './routes/shifts.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -37,6 +38,7 @@ export function buildApp() {
   app.register(zonesRoutes);
   app.register(officersRoutes);
   app.register(incidentsRoutes);
+  app.register(shiftsRoutes);
 
   return app;
 }

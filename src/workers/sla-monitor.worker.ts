@@ -82,11 +82,11 @@ async function processSlaCheck(_job: Job): Promise<void> {
     where: {
       status: 'escalated',
     },
-    select: { id: true, title: true, priority: true, createdAt: true, updatedAt: true },
+    select: { id: true, title: true, priority: true, createdAt: true, assignedAt: true },
   });
 
   for (const incident of escalatedIncidents) {
-    const escalatedDuration = now.getTime() - new Date(incident.updatedAt).getTime();
+    const escalatedDuration = now.getTime() - new Date(incident.assignedAt ?? incident.createdAt).getTime();
     const isCritical = incident.priority === 'critical';
     const opsManagerThreshold = isCritical ? 30 * 60000 : 2 * 3600000; // 30min or 2hr
     const cLevelThreshold = isCritical ? 60 * 60000 : 4 * 3600000; // 1hr or 4hr

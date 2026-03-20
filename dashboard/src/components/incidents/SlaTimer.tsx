@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 
 interface SlaTimerProps {
@@ -19,8 +20,8 @@ function formatRemaining(ms: number): string {
   const seconds = absSec % 60;
 
   if (ms < 0) {
-    if (hours > 0) return `OVERDUE +${hours}h ${minutes}m`;
-    return `OVERDUE +${minutes}m`;
+    if (hours > 0) return `⚠ +${hours}h ${minutes}m`;
+    return `⚠ +${minutes}m`;
   }
 
   if (hours > 0) {

@@ -24,10 +24,19 @@ const navigation = [
   { key: 'broadcast', href: '/broadcast', icon: Megaphone },
 ];
 
-const roleLabels: Record<string, string> = {
+const roleLabelsAr: Record<string, string> = {
+  manager: 'مدير الأمن',
+  assistant_manager: 'نائب المدير',
+  supervisor: 'مشرف',
+  operator: 'غرفة العمليات',
+  officer: 'ضابط',
+};
+const roleLabelsEn: Record<string, string> = {
   manager: 'Manager',
   assistant_manager: 'Asst. Manager',
   supervisor: 'Supervisor',
+  operator: 'Operator',
+  officer: 'Officer',
 };
 
 const roleVariant: Record<string, 'default' | 'success' | 'medium'> = {
@@ -118,17 +127,17 @@ export function Sidebar() {
       <div className="border-t border-slate-800 px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-sm font-bold text-slate-300">
-            {user?.nameEn?.charAt(0) ?? '?'}
+            {(i18n.language === 'ar' ? user?.nameAr?.[0] : user?.nameEn?.charAt(0)) ?? '?'}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-white">
-              {user?.nameEn ?? 'Unknown'}
+              {i18n.language === 'ar' ? (user?.nameAr || user?.nameEn) : (user?.nameEn ?? 'Unknown')}
             </p>
             <Badge
               variant={roleVariant[user?.role ?? ''] ?? 'default'}
               className="mt-0.5"
             >
-              {roleLabels[user?.role ?? ''] ?? user?.role}
+              {(i18n.language === 'ar' ? roleLabelsAr : roleLabelsEn)[user?.role ?? ''] ?? user?.role}
             </Badge>
           </div>
         </div>

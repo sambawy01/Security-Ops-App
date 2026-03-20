@@ -373,7 +373,7 @@ function MiniIncidentQueue({ incidents }: { incidents: Incident[] }) {
 /* ------------------------------------------------------------------ */
 
 export function DashboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data: statsData } = useDashboardStats();
   const { data: incidents = [] } = useIncidents();
   const { data: officers = [] } = useOfficers();
@@ -403,7 +403,7 @@ export function DashboardPage() {
               const colors: Record<string,string> = { critical: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-yellow-500', low: 'bg-blue-500' };
               return (
                 <span key={p} className={`text-[10px] font-bold text-white px-1.5 py-0.5 rounded ${colors[p]}`}>
-                  {p.slice(0,4).toUpperCase()}: {count}
+                  {t(`incident.${p}`)}: {count}
                 </span>
               );
             })}
@@ -431,7 +431,7 @@ export function DashboardPage() {
             return (
               <div key={zone.id} className="flex items-center gap-1.5">
                 <span className={`h-2 w-2 rounded-full ${dotColor}`} />
-                <span className="text-[10px] text-slate-600 font-medium">{zone.nameEn}</span>
+                <span className="text-[10px] text-slate-600 font-medium">{i18n.language === 'ar' ? (zone.nameAr || zone.nameEn) : zone.nameEn}</span>
               </div>
             );
           })}

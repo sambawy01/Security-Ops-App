@@ -53,8 +53,8 @@ const DEMO_INCIDENTS: {
 }[] = [
   // Critical (3)
   {
-    title: 'Suspicious vehicle near Downtown entrance',
-    description: 'A black SUV with no plates has been circling the Downtown main gate for 20 minutes. Guard on duty flagged it.',
+    title: 'مركبة مشبوهة بالقرب من مدخل وسط البلد',
+    description: 'سيارة دفع رباعي سوداء بدون لوحات تدور حول البوابة الرئيسية منذ 20 دقيقة. الحارس أبلغ عنها.',
     categoryEn: 'Security Threat',
     priority: 'critical',
     status: 'open',
@@ -62,8 +62,8 @@ const DEMO_INCIDENTS: {
     minutesAgo: 12,
   },
   {
-    title: 'Fire alarm triggered at Marina clubhouse',
-    description: 'Automatic fire alarm activated in building B, second floor. No visible smoke yet. Officers dispatched.',
+    title: 'إنذار حريق في نادي المارينا',
+    description: 'تم تفعيل إنذار الحريق التلقائي في المبنى ب، الطابق الثاني. لا يوجد دخان مرئي. تم إرسال ضباط.',
     categoryEn: 'Fire/Safety',
     priority: 'critical',
     status: 'assigned',
@@ -71,8 +71,8 @@ const DEMO_INCIDENTS: {
     minutesAgo: 25,
   },
   {
-    title: 'Unauthorized entry attempt at Industrial gate',
-    description: 'Two individuals attempted to bypass the Industrial zone south fence. CCTV captured footage. Area being swept.',
+    title: 'محاولة دخول غير مصرح بها من بوابة المنطقة الصناعية',
+    description: 'شخصان حاولا تجاوز السياج الجنوبي للمنطقة الصناعية. الكاميرات رصدت اللقطات. جاري تمشيط المنطقة.',
     categoryEn: 'Trespassing',
     priority: 'critical',
     status: 'in_progress',
@@ -81,8 +81,8 @@ const DEMO_INCIDENTS: {
   },
   // High (4)
   {
-    title: 'Traffic accident on Marina bridge',
-    description: 'Minor two-car collision blocking one lane on the Marina bridge. No injuries reported, traffic backing up.',
+    title: 'حادث مروري على جسر المارينا',
+    description: 'اصطدام بسيط بين سيارتين يسد حارة واحدة على جسر المارينا. لا إصابات. الحركة تتكدس.',
     categoryEn: 'Accidents',
     priority: 'high',
     status: 'assigned',
@@ -90,8 +90,8 @@ const DEMO_INCIDENTS: {
     minutesAgo: 35,
   },
   {
-    title: 'Unauthorized contractor vehicle at Industrial gate',
-    description: 'Unregistered delivery truck attempting entry without a valid pass. Driver claims appointment with maintenance.',
+    title: 'مركبة مقاول غير مصرح بها عند بوابة المنطقة الصناعية',
+    description: 'شاحنة توصيل غير مسجلة تحاول الدخول بدون تصريح. السائق يدعي موعد مع الصيانة.',
     categoryEn: 'Trespassing',
     priority: 'high',
     status: 'open',
@@ -99,8 +99,8 @@ const DEMO_INCIDENTS: {
     minutesAgo: 18,
   },
   {
-    title: 'Broken gate motor at checkpoint 12',
-    description: 'West Golf main gate motor is stuck in open position. Gate cannot close, security compromised.',
+    title: 'عطل في موتور البوابة عند نقطة تفتيش 12',
+    description: 'موتور البوابة الرئيسية في جولف غرب عالق في وضع مفتوح. البوابة لا تغلق.',
     categoryEn: 'Infrastructure',
     priority: 'high',
     status: 'in_progress',
@@ -108,8 +108,8 @@ const DEMO_INCIDENTS: {
     minutesAgo: 90,
   },
   {
-    title: 'Trespasser spotted near Kafr wall',
-    description: 'Resident reported someone climbing the perimeter wall near Kafr zone east side. Patrol sent to investigate.',
+    title: 'متسلل بالقرب من سور الكفر',
+    description: 'أبلغ أحد السكان عن شخص يتسلق السور المحيط بالقرب من الجهة الشرقية لمنطقة الكفر. تم إرسال دورية.',
     categoryEn: 'Trespassing',
     priority: 'high',
     status: 'assigned',
@@ -118,8 +118,8 @@ const DEMO_INCIDENTS: {
   },
   // Medium (5)
   {
-    title: 'Power outage at West Golf guardhouse',
-    description: 'Guard station lost electricity. Running on backup battery. Maintenance team notified.',
+    title: 'انقطاع الكهرباء في حراسة جولف غرب',
+    description: 'فقدت محطة الحراسة الكهرباء. تعمل على البطارية الاحتياطية. تم إخطار فريق الصيانة.',
     categoryEn: 'Infrastructure',
     priority: 'medium',
     status: 'assigned',
@@ -127,8 +127,8 @@ const DEMO_INCIDENTS: {
     minutesAgo: 70,
   },
   {
-    title: 'Water leak near Marina walkway',
-    description: 'Water pooling on the pedestrian walkway near Marina restaurants. Slipping hazard for visitors.',
+    title: 'تسرب مياه بالقرب من ممشى المارينا',
+    description: 'تجمع مياه على ممشى المشاة بالقرب من مطاعم المارينا. خطر انزلاق للزوار.',
     categoryEn: 'Infrastructure',
     priority: 'medium',
     status: 'open',
@@ -136,8 +136,8 @@ const DEMO_INCIDENTS: {
     minutesAgo: 40,
   },
   {
-    title: 'Illegal parking blocking South Golf entrance',
-    description: 'Three vehicles parked in no-parking zone blocking the South Golf service road.',
+    title: 'مواقف غير قانونية تسد مدخل جولف جنوب',
+    description: 'ثلاث مركبات متوقفة في منطقة ممنوعة تسد طريق الخدمة في جولف جنوب.',
     categoryEn: 'Traffic/Parking',
     priority: 'medium',
     status: 'in_progress',
@@ -145,8 +145,8 @@ const DEMO_INCIDENTS: {
     minutesAgo: 60,
   },
   {
-    title: 'Streetlight out on Downtown main road',
-    description: 'Section of Downtown main road between checkpoints 3 and 5 has no streetlights. Visibility concern.',
+    title: 'عمود إنارة معطل في الشارع الرئيسي بوسط البلد',
+    description: 'قسم من الشارع الرئيسي بين نقطتي تفتيش 3 و5 بدون إنارة. قلق على الرؤية الليلية.',
     categoryEn: 'Infrastructure',
     priority: 'medium',
     status: 'open',
@@ -154,8 +154,8 @@ const DEMO_INCIDENTS: {
     minutesAgo: 100,
   },
   {
-    title: 'Delivery truck parked in fire lane at Kafr',
-    description: 'Large delivery truck blocking fire access road behind Kafr residential block C. Driver not found.',
+    title: 'شاحنة توصيل في ممر الطوارئ بالكفر',
+    description: 'شاحنة توصيل كبيرة تسد طريق وصول الإطفاء خلف المبنى السكني ج في الكفر. السائق غير موجود.',
     categoryEn: 'Traffic/Parking',
     priority: 'medium',
     status: 'assigned',
@@ -164,8 +164,8 @@ const DEMO_INCIDENTS: {
   },
   // Low (3)
   {
-    title: 'Noise complaint from Marina resident',
-    description: 'Resident in building A, unit 403 reports loud music from neighboring restaurant past 11 PM curfew.',
+    title: 'شكوى ضوضاء من ساكن في المارينا',
+    description: 'ساكن في المبنى أ، شقة 403 يبلغ عن موسيقى صاخبة من المطعم المجاور بعد حظر الساعة 11 مساءً.',
     categoryEn: 'Noise Complaint',
     priority: 'low',
     status: 'open',
@@ -173,8 +173,8 @@ const DEMO_INCIDENTS: {
     minutesAgo: 110,
   },
   {
-    title: 'Stray dogs spotted near Kafr school area',
-    description: 'Pack of 4-5 stray dogs seen near the school entrance in Kafr zone. Parents concerned.',
+    title: 'كلاب ضالة بالقرب من مدرسة الكفر',
+    description: 'مجموعة من 4-5 كلاب ضالة شوهدت بالقرب من مدخل المدرسة في منطقة الكفر. أولياء الأمور قلقون.',
     categoryEn: 'Animal Control',
     priority: 'low',
     status: 'assigned',
@@ -182,8 +182,8 @@ const DEMO_INCIDENTS: {
     minutesAgo: 80,
   },
   {
-    title: 'Graffiti on South Golf boundary wall',
-    description: 'New graffiti spray-painted on the south-facing boundary wall near the golf course. Area photographed.',
+    title: 'كتابات على سور جولف جنوب',
+    description: 'كتابات جديدة بالرش على السور الجنوبي بالقرب من ملعب الجولف. تم تصوير المنطقة.',
     categoryEn: 'General Complaint',
     priority: 'low',
     status: 'resolved',

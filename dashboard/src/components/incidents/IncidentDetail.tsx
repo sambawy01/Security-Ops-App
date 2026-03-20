@@ -104,6 +104,7 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
   const updateMutation = useUpdateIncident();
   const addNoteMutation = useAddIncidentUpdate();
   const [noteText, setNoteText] = useState('');
+  const [noteRecipient, setNoteRecipient] = useState<string>('all');
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
   // Cast to extended type that may include relations from the API
@@ -139,12 +140,24 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
 
   const handleSendNote = () => {
     if (!noteText.trim()) return;
+    const recipientLabel = noteRecipient === 'all' ? 'Broadcast' :
+      noteRecipient === 'assistant_manager' ? 'To: Asst. Managers' :
+      noteRecipient === 'supervisor' ? 'To: Supervisors' :
+      noteRecipient === 'officer' ? 'To: Officers' : 'To: All Personnel';
     addNoteMutation.mutate(
       {
         incidentId: incident.id,
-        data: { type: 'note', content: noteText.trim() },
+        data: {
+          type: 'note',
+          content: `[${recipientLabel}] ${noteText.trim()}`,
+        },
       },
-      { onSuccess: () => setNoteText('') }
+      {
+        onSuccess: () => {
+          setNoteText('');
+          setNoteRecipient('all');
+        },
+      }
     );
   };
 
@@ -360,30 +373,77 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
           )}
         </div>
 
-        {/* Add Note */}
+        {/* Add Note with Recipient Selection */}
         <div className="px-6 py-4">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-            Add Note
+            Send Note
           </p>
+
+          {/* Recipient selector */}
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {[
+              { value: 'all', label: 'Broadcast All', icon: '📢' },
+              { value: 'assistant_manager', label: 'Asst. Managers', icon: '👔' },
+              { value: 'supervisor', label: 'Supervisors', icon: '🎖️' },
+              { value: 'officer', label: 'Officers', icon: '👮' },
+              { value: 'personnel', label: 'All Personnel', icon: '👥' },
+            ].map((r) => (
+              <button
+                key={r.value}
+                type="button"
+                onClick={() => setNoteRecipient(r.value)}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors border',
+                  noteRecipient === r.value
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                )}
+              >
+                <span>{r.icon}</span>
+                {r.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Note input */}
           <div className="flex gap-2">
-            <input
-              type="text"
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendNote();
+            <div className="flex-1 relative">
+              <textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendNote();
+                  }
+                }}
+                placeholder={
+                  noteRecipient === 'all'
+                    ? 'Broadcast to all personnel...'
+                    : noteRecipient === 'assistant_manager'
+                    ? 'Note to assistant managers...'
+                    : noteRecipient === 'supervisor'
+                    ? 'Note to supervisors...'
+                    : noteRecipient === 'officer'
+                    ? 'Note to officers...'
+                    : 'Note to all personnel...'
                 }
-              }}
-              placeholder="Type a note..."
-              className="flex h-9 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
-              aria-label="Add a note to this incident"
-            />
+                rows={2}
+                className="flex w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 resize-none"
+                aria-label="Note content"
+              />
+              <span className="absolute bottom-2 right-2 text-[10px] text-slate-400 font-mono">
+                To: {noteRecipient === 'all' ? 'Everyone' :
+                     noteRecipient === 'assistant_manager' ? 'Asst. Managers' :
+                     noteRecipient === 'supervisor' ? 'Supervisors' :
+                     noteRecipient === 'officer' ? 'Officers' : 'All Personnel'}
+              </span>
+            </div>
             <Button
               size="sm"
               onClick={handleSendNote}
               disabled={!noteText.trim() || addNoteMutation.isPending}
+              className="self-end"
             >
               {addNoteMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

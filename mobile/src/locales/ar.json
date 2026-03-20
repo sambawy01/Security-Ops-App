@@ -1,0 +1,14 @@
+{
+  "app": { "title": "نظام الأمن" },
+  "nav": { "home": "الرئيسية", "incidents": "البلاغات", "patrol": "الدوريات", "settings": "الإعدادات" },
+  "login": { "title": "تسجيل الدخول", "badge": "رقم الشارة", "pin": "الرقم السري", "submit": "دخول", "error": "بيانات غير صحيحة" },
+  "home": { "shift": "الوردية", "checkIn": "تسجيل حضور", "checkOut": "تسجيل انصراف", "activeIncidents": "البلاغات النشطة", "onDuty": "على رأس العمل", "offDuty": "خارج الخدمة", "noShift": "لا توجد وردية مجدولة" },
+  "incident": { "new": "بلاغ جديد", "title": "العنوان", "description": "الوصف", "category": "التصنيف", "priority": "الأولوية", "status": "الحالة", "assigned": "مكلف", "unassigned": "غير مكلف", "acknowledge": "تأكيد الاستلام", "resolve": "تم الحل", "escalate": "تصعيد", "addNote": "إضافة ملاحظة", "photo": "صورة", "submit": "إرسال", "noIncidents": "لا توجد بلاغات" },
+  "patrol": { "start": "بدء الدورية", "checkpoint": "نقطة تفتيش", "confirm": "تأكيد الوصول", "skip": "تخطي", "skipReason": "سبب التخطي", "completed": "اكتملت الدورية", "selectRoute": "اختر مسار الدورية", "noRoutes": "لا توجد مسارات" },
+  "shift": { "checkInSuccess": "تم تسجيل الحضور", "checkOutSuccess": "تم تسجيل الانصراف", "handover": "ملاحظات التسليم", "day": "نهاري", "night": "ليلي" },
+  "settings": { "title": "الإعدادات", "language": "اللغة", "arabic": "العربية", "english": "English", "version": "الإصدار", "logout": "تسجيل خروج", "sync": "مزامنة", "pendingActions": "إجراءات معلقة", "forceSync": "مزامنة الآن" },
+  "common": { "save": "حفظ", "cancel": "إلغاء", "back": "رجوع", "loading": "جاري التحميل...", "error": "حدث خطأ", "offline": "أنت غير متصل بالإنترنت", "pendingSync": "{{count}} إجراء في الانتظار", "retry": "إعادة المحاولة", "ok": "موافق" },
+  "priority": { "critical": "حرج", "high": "عالي", "medium": "متوسط", "low": "منخفض" },
+  "status": { "open": "مفتوح", "assigned": "مكلف", "in_progress": "قيد التنفيذ", "escalated": "مصعّد", "resolved": "تم الحل", "closed": "مغلق", "cancelled": "ملغي" },
+  "category": { "security_threat": "تهديد أمني", "fire_safety": "حريق/سلامة", "accidents": "حوادث", "trespassing": "تعدي", "infrastructure": "بنية تحتية", "traffic_parking": "مرور/مواقف", "noise_complaint": "ضوضاء", "animal_control": "حيوانات", "general_complaint": "شكوى عامة" }
+}

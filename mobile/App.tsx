@@ -1,18 +1,19 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { I18nManager } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { AuthProvider } from './src/hooks/useAuth';
+import { AppNavigator } from './src/navigation/AppNavigator';
+import './src/lib/i18n'; // Initialize i18n
+
+// Force RTL for Arabic
+I18nManager.forceRTL(true);
+I18nManager.allowRTL(true);
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>نظام الأمن</Text>
-      <Text style={styles.subtitle}>Security OS</Text>
-      <Text style={styles.loading}>جاري التحميل...</Text>
-    </View>
+    <AuthProvider>
+      <NavigationContainer>
+        <AppNavigator />
+      </NavigationContainer>
+    </AuthProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F172A' },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
-  subtitle: { fontSize: 16, color: '#94A3B8', marginTop: 4 },
-  loading: { fontSize: 14, color: '#64748B', marginTop: 20 },
-});

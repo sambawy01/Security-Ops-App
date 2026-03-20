@@ -1,0 +1,14 @@
+{
+  "app": { "title": "Security OS" },
+  "nav": { "home": "Home", "incidents": "Incidents", "patrol": "Patrol", "settings": "Settings" },
+  "login": { "title": "Login", "badge": "Badge Number", "pin": "PIN", "submit": "Sign In", "error": "Invalid credentials" },
+  "home": { "shift": "Shift", "checkIn": "Check In", "checkOut": "Check Out", "activeIncidents": "Active Incidents", "onDuty": "On Duty", "offDuty": "Off Duty", "noShift": "No shift scheduled" },
+  "incident": { "new": "New Incident", "title": "Title", "description": "Description", "category": "Category", "priority": "Priority", "status": "Status", "assigned": "Assigned", "unassigned": "Unassigned", "acknowledge": "Acknowledge", "resolve": "Resolve", "escalate": "Escalate", "addNote": "Add Note", "photo": "Photo", "submit": "Submit", "noIncidents": "No incidents" },
+  "patrol": { "start": "Start Patrol", "checkpoint": "Checkpoint", "confirm": "Confirm Arrival", "skip": "Skip", "skipReason": "Skip Reason", "completed": "Patrol Completed", "selectRoute": "Select Patrol Route", "noRoutes": "No routes available" },
+  "shift": { "checkInSuccess": "Check-in successful", "checkOutSuccess": "Check-out successful", "handover": "Handover Notes", "day": "Day", "night": "Night" },
+  "settings": { "title": "Settings", "language": "Language", "arabic": "العربية", "english": "English", "version": "Version", "logout": "Logout", "sync": "Sync", "pendingActions": "Pending Actions", "forceSync": "Sync Now" },
+  "common": { "save": "Save", "cancel": "Cancel", "back": "Back", "loading": "Loading...", "error": "An error occurred", "offline": "You are offline", "pendingSync": "{{count}} action(s) pending", "retry": "Retry", "ok": "OK" },
+  "priority": { "critical": "Critical", "high": "High", "medium": "Medium", "low": "Low" },
+  "status": { "open": "Open", "assigned": "Assigned", "in_progress": "In Progress", "escalated": "Escalated", "resolved": "Resolved", "closed": "Closed", "cancelled": "Cancelled" },
+  "category": { "security_threat": "Security Threat", "fire_safety": "Fire / Safety", "accidents": "Accidents", "trespassing": "Trespassing", "infrastructure": "Infrastructure", "traffic_parking": "Traffic / Parking", "noise_complaint": "Noise Complaint", "animal_control": "Animal Control", "general_complaint": "General Complaint" }
+}

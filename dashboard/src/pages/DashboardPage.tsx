@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CommandMap } from '../components/map/CommandMap';
 import { ZoneOverlays } from '../components/map/ZoneOverlays';
@@ -374,28 +375,85 @@ export function DashboardPage() {
   const { data: officers = [] } = useOfficers();
   const { data: zones = [] } = useZones();
 
+  const incidentList = Array.isArray(incidents) ? incidents : [];
+  const officerList = Array.isArray(officers) ? officers : [];
+  const zoneList = Array.isArray(zones) ? zones : [];
+
   return (
-    <div className="-m-6 h-[calc(100vh-4rem)] relative">
-      <CommandMap>
-        <ZoneOverlays />
-        <OfficerMarkers />
-        <IncidentMarkers />
-        <CheckpointMarkers />
-      </CommandMap>
+    <div className="-m-6 h-[calc(100vh-4rem)] flex flex-col">
+      {/* Top bar: Quick Stats + Zone Health */}
+      <div className="flex items-stretch gap-3 px-4 py-3 bg-white border-b border-slate-200 shrink-0">
+        {/* Quick Stats */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+            <span className="text-sm font-bold text-slate-900">
+              {incidentList.filter((i: any) => ['open','assigned','in_progress','escalated'].includes(i.status)).length}
+            </span>
+            <span className="text-xs text-slate-500">Open Incidents</span>
+          </div>
+          <div className="flex gap-1">
+            {['critical','high','medium','low'].map(p => {
+              const count = incidentList.filter((i: any) => i.priority === p && ['open','assigned','in_progress','escalated'].includes(i.status)).length;
+              if (count === 0) return null;
+              const colors: Record<string,string> = { critical: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-yellow-500', low: 'bg-blue-500' };
+              return (
+                <span key={p} className={`text-[10px] font-bold text-white px-1.5 py-0.5 rounded ${colors[p]}`}>
+                  {p.slice(0,4).toUpperCase()}: {count}
+                </span>
+              );
+            })}
+          </div>
+          <div className="w-px h-6 bg-slate-200" />
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-green-500" />
+            <span className="text-sm font-bold text-slate-900">
+              {officerList.filter((o: any) => o.status === 'active').length}
+            </span>
+            <span className="text-xs text-slate-500">On Duty</span>
+          </div>
+        </div>
 
-      {/* Floating overlay panels */}
-      <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
-        <QuickStatsPanel incidents={incidents} officers={officers} />
-        <ZoneHealthPanel
-          zones={zones}
-          incidents={incidents}
-          officers={officers}
-        />
-        <ActivityFeedPanel stats={statsData} incidents={incidents} />
-        <MiniIncidentQueue incidents={incidents} />
+        <div className="flex-1" />
 
-        {/* AI Insights Panel — right side */}
-        <div className={`${panelClass} top-[180px] right-3 max-h-[calc(100vh-240px)] overflow-y-auto`}>
+        {/* Zone Health dots */}
+        <div className="flex items-center gap-3">
+          {zoneList.map((zone: any) => {
+            const zoneIncidents = incidentList.filter((i: any) => i.zoneId === zone.id && ['open','assigned','in_progress','escalated'].includes(i.status));
+            const hasCritical = zoneIncidents.some((i: any) => i.priority === 'critical');
+            const zoneOfficers = officerList.filter((o: any) => o.zoneId === zone.id && o.status === 'active');
+            const health = hasCritical ? 'red' : zoneIncidents.length > zoneOfficers.length ? 'yellow' : 'green';
+            const dotColor = health === 'red' ? 'bg-red-500' : health === 'yellow' ? 'bg-yellow-500' : 'bg-green-500';
+            return (
+              <div key={zone.id} className="flex items-center gap-1.5">
+                <span className={`h-2 w-2 rounded-full ${dotColor}`} />
+                <span className="text-[10px] text-slate-600 font-medium">{zone.nameEn}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main content: Map (left) + OIB (right) */}
+      <div className="flex flex-1 min-h-0">
+        {/* Map Panel */}
+        <div className="flex-1 relative">
+          <CommandMap>
+            <ZoneOverlays />
+            <OfficerMarkers />
+            <IncidentMarkers />
+            <CheckpointMarkers />
+          </CommandMap>
+
+          {/* Floating mini panels on the map */}
+          <div className="absolute inset-0 z-10 pointer-events-none">
+            <ActivityFeedPanel stats={statsData} incidents={incidentList} />
+            <MiniIncidentQueue incidents={incidentList} />
+          </div>
+        </div>
+
+        {/* OIB Panel — separated, scrollable */}
+        <div className="w-[380px] shrink-0 border-l border-slate-200 bg-white overflow-y-auto p-4">
           <OpsBriefing />
         </div>
       </div>

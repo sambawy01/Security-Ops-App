@@ -6,6 +6,7 @@ import {
   Clock,
   LogOut,
   Shield,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Badge } from './ui/badge';
@@ -16,6 +17,7 @@ const navigation = [
   { name: 'Incidents', href: '/incidents', icon: AlertTriangle, badge: true },
   { name: 'Personnel', href: '/personnel', icon: Users },
   { name: 'Shifts', href: '/shifts', icon: Clock },
+  { name: 'Reports', href: '/reports', icon: FileText },
 ];
 
 const roleLabels: Record<string, string> = {

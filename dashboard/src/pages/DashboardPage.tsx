@@ -10,6 +10,7 @@ import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useIncidents } from '../hooks/useIncidents';
 import { useOfficers } from '../hooks/useOfficers';
 import { useZones } from '../hooks/useZones';
+import { AiInsightsPanel } from '../components/ai/AiInsightsPanel';
 import type { Incident, Officer, Zone } from '../types';
 
 /* ------------------------------------------------------------------ */
@@ -392,6 +393,11 @@ export function DashboardPage() {
         />
         <ActivityFeedPanel stats={statsData} incidents={incidents} />
         <MiniIncidentQueue incidents={incidents} />
+
+        {/* AI Insights Panel — right side */}
+        <div className={`${panelClass} top-[180px] right-3 max-h-[calc(100vh-240px)] overflow-y-auto`}>
+          <AiInsightsPanel />
+        </div>
       </div>
     </div>
   );

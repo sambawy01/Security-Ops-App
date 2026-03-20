@@ -1,18 +1,18 @@
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { CommandMap } from '../components/map/CommandMap';
+import { ZoneOverlays } from '../components/map/ZoneOverlays';
+import { OfficerMarkers } from '../components/map/OfficerMarkers';
+import { IncidentMarkers } from '../components/map/IncidentMarkers';
+import { CheckpointMarkers } from '../components/map/CheckpointMarkers';
 
 export function DashboardPage() {
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Command Map</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-slate-500 font-mono">
-            Real-time zone overview and officer positions -- coming soon.
-          </p>
-        </CardContent>
-      </Card>
+    <div className="-m-6 h-[calc(100vh-4rem)]">
+      <CommandMap>
+        <ZoneOverlays />
+        <OfficerMarkers />
+        <IncidentMarkers />
+        <CheckpointMarkers />
+      </CommandMap>
     </div>
   );
 }

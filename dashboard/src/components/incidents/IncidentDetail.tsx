@@ -80,8 +80,11 @@ function getAvailableActions(status: string): Array<{ action: string; label: str
         { action: 'escalate', label: 'Escalate', variant: 'destructive' as const, newStatus: 'escalated' },
       ];
     case 'escalated':
+      // No de-escalate — security manager must take action.
+      // If unresolved, system auto-escalates to Ops Manager and C-level.
       return [
-        { action: 'deescalate', label: 'De-escalate', variant: 'outline' as const, newStatus: 'in_progress' },
+        { action: 'resolve', label: 'Resolve Now', variant: 'default' as const, newStatus: 'resolved' },
+        { action: 'reassign', label: 'Reassign Officer', variant: 'outline' as const },
       ];
     case 'resolved':
       return [
@@ -297,9 +300,18 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
             Actions
           </p>
+          {incident.status === 'escalated' && (
+            <div className="mb-3 rounded-md bg-red-50 border border-red-200 p-3">
+              <p className="text-xs font-semibold text-red-800">⚠ ESCALATED — Action Required</p>
+              <p className="text-xs text-red-700 mt-1">
+                This incident has been escalated. You must resolve or reassign it.
+                If no action is taken, it will auto-escalate to Operations Manager and C-level.
+              </p>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {actions.map((a) =>
-              a.action === 'assign' ? (
+              a.action === 'assign' || a.action === 'reassign' ? (
                 <Button
                   key={a.action}
                   size="sm"

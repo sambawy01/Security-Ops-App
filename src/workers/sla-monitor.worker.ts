@@ -74,6 +74,56 @@ async function processSlaCheck(_job: Job): Promise<void> {
   if (total > 0) {
     console.log(`[sla-monitor] Escalated ${total} incident(s) for SLA breach`);
   }
+
+  // 3. ODH Management Escalation: escalated incidents where security manager hasn't acted
+  //    - If escalated for >30min (critical) or >2hr (others) → flag for Ops Manager
+  //    - If escalated for >1hr (critical) or >4hr (others) → flag for C-level
+  const escalatedIncidents = await prisma.incident.findMany({
+    where: {
+      status: 'escalated',
+    },
+    select: { id: true, title: true, priority: true, createdAt: true, updatedAt: true },
+  });
+
+  for (const incident of escalatedIncidents) {
+    const escalatedDuration = now.getTime() - new Date(incident.updatedAt).getTime();
+    const isCritical = incident.priority === 'critical';
+    const opsManagerThreshold = isCritical ? 30 * 60000 : 2 * 3600000; // 30min or 2hr
+    const cLevelThreshold = isCritical ? 60 * 60000 : 4 * 3600000; // 1hr or 4hr
+
+    // Check if already flagged (avoid duplicate updates)
+    const existingFlags = await prisma.incidentUpdate.findMany({
+      where: {
+        incidentId: incident.id,
+        type: 'escalation',
+        content: { contains: 'ODH' },
+      },
+    });
+    const hasOpsFlag = existingFlags.some((u: any) => u.content.includes('Operations Manager'));
+    const hasCLevelFlag = existingFlags.some((u: any) => u.content.includes('C-Level'));
+
+    if (escalatedDuration >= cLevelThreshold && !hasCLevelFlag) {
+      await prisma.incidentUpdate.create({
+        data: {
+          incidentId: incident.id,
+          type: 'escalation',
+          content: `⚠️ CRITICAL ESCALATION: Incident unresolved for ${Math.round(escalatedDuration / 60000)}min — escalated to ODH C-Level management`,
+          metadata: { escalationLevel: 'c_level', autoEscalated: true } as any,
+        },
+      });
+      console.log(`[sla-monitor] Incident ${incident.id.slice(0,8)} escalated to C-Level`);
+    } else if (escalatedDuration >= opsManagerThreshold && !hasOpsFlag) {
+      await prisma.incidentUpdate.create({
+        data: {
+          incidentId: incident.id,
+          type: 'escalation',
+          content: `⚠️ Incident unresolved for ${Math.round(escalatedDuration / 60000)}min — escalated to ODH Operations Manager`,
+          metadata: { escalationLevel: 'ops_manager', autoEscalated: true } as any,
+        },
+      });
+      console.log(`[sla-monitor] Incident ${incident.id.slice(0,8)} escalated to Ops Manager`);
+    }
+  }
 }
 
 export const slaMonitorWorker = new Worker('sla-monitor', processSlaCheck, {

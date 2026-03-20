@@ -18,7 +18,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   open: ['assigned', 'cancelled'],
   assigned: ['in_progress', 'cancelled'],
   in_progress: ['resolved', 'escalated', 'cancelled'],
-  escalated: ['in_progress', 'cancelled'],
+  escalated: ['resolved', 'assigned', 'cancelled'], // No de-escalate. Must resolve, reassign, or cancel.
   resolved: ['closed', 'cancelled'],
 };
 
@@ -221,6 +221,51 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
           }).catch(() => {}); // Ignore errors — best-effort AI suggestion
         }
       }).catch(() => {});
+    }
+
+    // Auto-assign nearest available officer (fire-and-forget)
+    if (created && created.zoneId) {
+      (async () => {
+        try {
+          // Find active officers in the same zone, sorted by fewest active incidents
+          const candidates = await prisma.officer.findMany({
+            where: {
+              zoneId: created.zoneId!,
+              status: 'active',
+              role: { in: ['officer', 'supervisor'] },
+            },
+            include: {
+              _count: {
+                select: { assignedIncidents: { where: { status: { in: ['open', 'assigned', 'in_progress'] } } } },
+              },
+            },
+            orderBy: { createdAt: 'asc' },
+          });
+          // Sort by fewest active incidents (least loaded first)
+          candidates.sort((a: any, b: any) => (a._count?.assignedIncidents ?? 0) - (b._count?.assignedIncidents ?? 0));
+          const nearest = candidates[0];
+          if (nearest) {
+            const now = new Date();
+            await prisma.incident.update({
+              where: { id: created.id },
+              data: {
+                assignedOfficerId: nearest.id,
+                assignedAt: now,
+                status: 'assigned',
+                slaResponseDeadline: created.slaResponseDeadline ?? new Date(now.getTime() + 5 * 60000),
+              },
+            });
+            await prisma.incidentUpdate.create({
+              data: {
+                incidentId: created.id,
+                type: 'assignment',
+                content: `Auto-assigned to ${nearest.nameEn} (nearest available)`,
+                metadata: { newOfficer: nearest.id, autoAssigned: true } as any,
+              },
+            });
+          }
+        } catch { /* Auto-assign is best-effort */ }
+      })();
     }
 
     return reply.status(201).send({ data: created });

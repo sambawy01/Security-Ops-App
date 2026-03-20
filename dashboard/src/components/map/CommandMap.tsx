@@ -42,6 +42,17 @@ export function CommandMap({ children }: { children?: React.ReactNode }) {
       showUserHeading: true,
     }), 'top-right');
 
+    // Scale markers with zoom level — prevents icons from overwhelming the map when zoomed out
+    const BASE_ZOOM = 14; // At this zoom, markers are 100% size
+    function updateMarkerScale() {
+      const zoom = map.getZoom();
+      const scale = Math.max(0.3, Math.min(1.2, Math.pow(2, (zoom - BASE_ZOOM) * 0.5)));
+      const container = map.getContainer();
+      container.style.setProperty('--marker-scale', String(scale));
+    }
+    map.on('zoom', updateMarkerScale);
+    updateMarkerScale();
+
     map.on('load', () => {
       setMapInstance(map);
 

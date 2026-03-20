@@ -30,6 +30,10 @@ function injectPulseStyle() {
       100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
     }
     .incident-pulse { animation: incident-pulse 1.5s ease-out infinite; }
+    .incident-marker {
+      transform: scale(var(--marker-scale, 1));
+      transition: transform 0.1s ease-out;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -73,6 +77,7 @@ export function IncidentMarkers() {
 
       // Marker element
       const el = document.createElement('div');
+      el.className = 'incident-marker';
       el.style.width = '16px';
       el.style.height = '16px';
       el.style.borderRadius = '50%';

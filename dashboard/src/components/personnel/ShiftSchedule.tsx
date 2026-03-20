@@ -1,24 +1,27 @@
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Clock, Shield } from 'lucide-react';
 import { useShifts } from '../../hooks/useShifts';
-import { useOfficers } from '../../hooks/useOfficers';
 import { useZones } from '../../hooks/useZones';
 import { Select } from '../ui/select';
+import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+/** Format a date as YYYY-MM-DD */
+function toISO(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
 
-/** Get start of the week (Sunday) for a given date */
+/** Format time as HH:MM */
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+/** Get start of the week (Sunday) */
 function startOfWeek(date: Date): Date {
   const d = new Date(date);
   d.setDate(d.getDate() - d.getDay());
   d.setHours(0, 0, 0, 0);
   return d;
-}
-
-/** Format a date as YYYY-MM-DD */
-function toISO(date: Date): string {
-  return date.toISOString().slice(0, 10);
 }
 
 /** Format week range label */
@@ -29,38 +32,50 @@ function weekLabel(start: Date): string {
   return `${fmt.format(start)} - ${fmt.format(end)}, ${end.getFullYear()}`;
 }
 
-/** Determine shift type label from scheduled start hour */
-function shiftType(scheduledStart: string): string {
-  const hour = new Date(scheduledStart).getHours();
-  return hour >= 6 && hour < 18 ? 'Day' : 'Night';
+/** Determine SOP type from shift hours */
+function getShiftSOP(scheduledStart: string, scheduledEnd: string): string {
+  const startHour = new Date(scheduledStart).getHours();
+  const endHour = new Date(scheduledEnd).getHours();
+  if (startHour >= 5 && startHour <= 8 && endHour >= 16 && endHour <= 20) return 'Day Shift';
+  if (startHour >= 17 || startHour <= 1) return 'Night Shift';
+  return 'Custom';
 }
 
-/** Shift status to cell styling */
-const statusCellClass: Record<string, string> = {
-  active: 'bg-green-100 text-green-800',
-  completed: 'bg-green-100 text-green-800',
-  scheduled: 'bg-blue-100 text-blue-800',
-  no_show: 'bg-red-100 text-red-800',
-  called_off: 'bg-slate-100 text-slate-500',
+/** Status styling */
+const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
+  active:     { bg: 'bg-green-100', text: 'text-green-800', label: 'Active' },
+  completed:  { bg: 'bg-green-50',  text: 'text-green-700', label: 'Completed' },
+  scheduled:  { bg: 'bg-blue-100',  text: 'text-blue-800',  label: 'Scheduled' },
+  no_show:    { bg: 'bg-red-100',   text: 'text-red-800',   label: 'No Show' },
+  called_off: { bg: 'bg-slate-100', text: 'text-slate-500', label: 'Called Off' },
 };
 
-const statusCellLabel: Record<string, string> = {
-  no_show: 'No Show',
-  called_off: 'Called Off',
-};
+interface ShiftData {
+  id: string;
+  officerId: string;
+  zoneId: string;
+  status: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  actualCheckIn: string | null;
+  actualCheckOut: string | null;
+  handoverNotes: string | null;
+  officer?: { nameEn: string; nameAr: string; badgeNumber: string };
+  zone?: { nameEn: string; nameAr: string };
+}
 
 export function ShiftSchedule() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [zoneFilter, setZoneFilter] = useState('');
+  const [expandedShift, setExpandedShift] = useState<string | null>(null);
 
   const { data: zones } = useZones();
   const zoneOptions = useMemo(() => {
     const base = [{ value: '', label: 'All Zones' }];
     if (!zones) return base;
-    return [...base, ...zones.map((z) => ({ value: z.id, label: z.nameEn }))];
+    return [...base, ...zones.map((z: any) => ({ value: z.id, label: z.nameEn }))];
   }, [zones]);
 
-  // Compute week boundaries
   const weekStart = useMemo(() => {
     const now = new Date();
     const ws = startOfWeek(now);
@@ -74,7 +89,6 @@ export function ShiftSchedule() {
     return end;
   }, [weekStart]);
 
-  // Fetch shifts for the week
   const shiftFilters = useMemo(
     () => ({
       from: toISO(weekStart),
@@ -84,64 +98,17 @@ export function ShiftSchedule() {
     [weekStart, weekEnd, zoneFilter]
   );
 
-  const { data: shifts, isLoading: shiftsLoading } = useShifts(shiftFilters);
+  const { data: shifts, isLoading } = useShifts(shiftFilters);
+  const shiftList = (shifts ?? []) as ShiftData[];
 
-  // Fetch officers to resolve names
-  const officerFilters = useMemo(
-    () => (zoneFilter ? { zoneId: zoneFilter } : undefined),
-    [zoneFilter]
-  );
-  const { data: officers } = useOfficers(officerFilters);
-
-  // Build a lookup: officerId -> name
-  const officerMap = useMemo(() => {
-    const m = new Map<string, string>();
-    officers?.forEach((o) => m.set(o.id, o.nameEn));
-    return m;
-  }, [officers]);
-
-  // Today's day index (0=Sun)
-  const todayIndex = useMemo(() => {
-    const now = new Date();
-    const thisWeekStart = startOfWeek(now);
-    if (weekStart.getTime() === thisWeekStart.getTime()) {
-      return now.getDay();
-    }
-    return -1; // not this week
-  }, [weekStart]);
-
-  // Build grid: officerId -> dayIndex -> shift
-  const grid = useMemo(() => {
-    const m = new Map<string, Map<number, { label: string; status: string }>>();
-    if (!shifts) return m;
-
-    for (const s of shifts) {
-      const date = new Date(s.scheduledStart);
-      const dayIdx = date.getDay();
-      if (!m.has(s.officerId)) m.set(s.officerId, new Map());
-      m.get(s.officerId)!.set(dayIdx, {
-        label: statusCellLabel[s.status] ?? shiftType(s.scheduledStart),
-        status: s.status,
-      });
-    }
-    return m;
-  }, [shifts]);
-
-  // Sorted officer IDs for the grid
-  const officerIds = useMemo(() => {
-    return Array.from(grid.keys()).sort((a, b) => {
-      const nameA = officerMap.get(a) ?? a;
-      const nameB = officerMap.get(b) ?? b;
-      return nameA.localeCompare(nameB);
+  // Sort: active first, then by scheduled start
+  const sortedShifts = useMemo(() => {
+    return [...shiftList].sort((a, b) => {
+      if (a.status === 'active' && b.status !== 'active') return -1;
+      if (b.status === 'active' && a.status !== 'active') return 1;
+      return new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime();
     });
-  }, [grid, officerMap]);
-
-  /** Abbreviate name: "Ahmed Mahmoud" -> "Ahmed M." */
-  function abbreviate(name: string): string {
-    const parts = name.split(' ');
-    if (parts.length <= 1) return name;
-    return `${parts[0]} ${parts[parts.length - 1][0]}.`;
-  }
+  }, [shiftList]);
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -151,7 +118,7 @@ export function ShiftSchedule() {
           <button
             type="button"
             onClick={() => setWeekOffset((w) => w - 1)}
-            className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
             aria-label="Previous week"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -162,7 +129,7 @@ export function ShiftSchedule() {
           <button
             type="button"
             onClick={() => setWeekOffset((w) => w + 1)}
-            className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
             aria-label="Next week"
           >
             <ChevronRight className="h-4 w-4" />
@@ -177,91 +144,150 @@ export function ShiftSchedule() {
             </button>
           )}
         </div>
-
-        <div className="w-48">
-          <Select
-            options={zoneOptions}
-            value={zoneFilter}
-            onChange={(e) => setZoneFilter(e.target.value)}
-            aria-label="Filter by zone"
-          />
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-500 font-mono">{sortedShifts.length} shifts</span>
+          <div className="w-48">
+            <Select
+              options={zoneOptions}
+              value={zoneFilter}
+              onChange={(e) => setZoneFilter(e.target.value)}
+              aria-label="Filter by zone"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        {shiftsLoading ? (
+      {/* Shift List */}
+      <div className="divide-y divide-slate-100">
+        {isLoading ? (
           <div className="p-8 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-10 rounded bg-slate-100 animate-pulse" />
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-16 rounded bg-slate-100 animate-pulse" />
             ))}
           </div>
-        ) : officerIds.length === 0 ? (
+        ) : sortedShifts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-sm text-slate-500">No shifts found for this week</p>
+            <Clock className="h-10 w-10 text-slate-300 mb-3" />
+            <p className="text-sm text-slate-500">No shifts found for this period</p>
           </div>
         ) : (
-          <table className="w-full text-sm" role="grid">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-2.5 font-semibold text-slate-700 whitespace-nowrap min-w-[140px]">
-                  Officer
-                </th>
-                {DAYS.map((day, i) => (
-                  <th
-                    key={day}
-                    className={cn(
-                      'px-3 py-2.5 text-center font-semibold text-slate-700 whitespace-nowrap min-w-[70px]',
-                      i === todayIndex && 'bg-blue-50 text-blue-800'
-                    )}
-                  >
-                    {day}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {officerIds.map((officerId) => {
-                const name = officerMap.get(officerId) ?? officerId.slice(0, 8);
-                const row = grid.get(officerId)!;
-                return (
-                  <tr
-                    key={officerId}
-                    className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
-                  >
-                    <td className="px-4 py-2.5 font-medium text-slate-900 whitespace-nowrap">
-                      {abbreviate(name)}
-                    </td>
-                    {DAYS.map((day, i) => {
-                      const cell = row.get(i);
-                      return (
-                        <td
-                          key={day}
-                          className={cn(
-                            'px-3 py-2.5 text-center whitespace-nowrap',
-                            i === todayIndex && 'bg-blue-50/40'
-                          )}
-                        >
-                          {cell ? (
-                            <span
-                              className={cn(
-                                'inline-block rounded px-2 py-0.5 text-xs font-medium',
-                                statusCellClass[cell.status] ?? 'bg-slate-100 text-slate-500'
-                              )}
-                            >
-                              {cell.label}
-                            </span>
+          sortedShifts.map((shift) => {
+            const sop = getShiftSOP(shift.scheduledStart, shift.scheduledEnd);
+            const config = statusConfig[shift.status] ?? statusConfig.scheduled;
+            const isExpanded = expandedShift === shift.id;
+            const zoneName = shift.zone?.nameEn ?? 'Unknown Zone';
+            const officerName = shift.officer?.nameEn ?? 'Unknown';
+            const badge = shift.officer?.badgeNumber ?? '';
+            const date = new Date(shift.scheduledStart).toLocaleDateString('en-US', {
+              weekday: 'short', month: 'short', day: 'numeric',
+            });
+
+            return (
+              <div key={shift.id}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedShift(isExpanded ? null : shift.id)}
+                  className="w-full text-left px-4 py-3 hover:bg-slate-50/50 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    {/* Officer */}
+                    <div className="min-w-[160px]">
+                      <div className="text-sm font-medium text-slate-900">{officerName}</div>
+                      <div className="text-xs text-slate-500 font-mono">{badge}</div>
+                    </div>
+
+                    {/* Location (Zone) */}
+                    <div className="flex items-center gap-1.5 min-w-[120px]">
+                      <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className="text-sm text-slate-700">{zoneName}</span>
+                    </div>
+
+                    {/* Time */}
+                    <div className="flex items-center gap-1.5 min-w-[130px]">
+                      <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className="text-sm text-slate-700 font-mono">
+                        {formatTime(shift.scheduledStart)} – {formatTime(shift.scheduledEnd)}
+                      </span>
+                    </div>
+
+                    {/* SOP */}
+                    <div className="flex items-center gap-1.5 min-w-[100px]">
+                      <Shield className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className="text-sm text-slate-700">{sop}</span>
+                    </div>
+
+                    {/* Date */}
+                    <div className="text-xs text-slate-500 min-w-[90px]">{date}</div>
+
+                    {/* Status */}
+                    <div className="ml-auto">
+                      <span className={cn('inline-block rounded px-2 py-0.5 text-xs font-medium', config.bg, config.text)}>
+                        {config.label}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Expanded Detail */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-1 bg-slate-50/50 border-t border-slate-100">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                      <div>
+                        <div className="text-slate-500 font-medium mb-1">LOCATION</div>
+                        <div className="text-slate-900">{zoneName}</div>
+                        <div className="text-slate-500">{shift.zone?.nameAr}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500 font-medium mb-1">SCHEDULED TIME</div>
+                        <div className="text-slate-900 font-mono">
+                          {formatTime(shift.scheduledStart)} – {formatTime(shift.scheduledEnd)}
+                        </div>
+                        <div className="text-slate-500">
+                          {Math.round((new Date(shift.scheduledEnd).getTime() - new Date(shift.scheduledStart).getTime()) / 3600000)}h shift
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500 font-medium mb-1">SOP / TYPE</div>
+                        <div className="text-slate-900">{sop}</div>
+                        <div className="text-slate-500">
+                          {sop === 'Day Shift' ? 'Patrol + Gate + Incident Response' :
+                           sop === 'Night Shift' ? 'Patrol + Perimeter + Emergency Response' :
+                           'Custom Assignment'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500 font-medium mb-1">CHECK-IN / CHECK-OUT</div>
+                        <div className="text-slate-900">
+                          {shift.actualCheckIn ? (
+                            <span className="text-green-700">In: {formatTime(shift.actualCheckIn)}</span>
                           ) : (
-                            <span className="text-slate-300">&mdash;</span>
+                            <span className="text-amber-600">Not checked in</span>
                           )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        </div>
+                        <div className="text-slate-900">
+                          {shift.actualCheckOut ? (
+                            <span className="text-green-700">Out: {formatTime(shift.actualCheckOut)}</span>
+                          ) : shift.status === 'active' ? (
+                            <span className="text-blue-600">Currently on duty</span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {shift.handoverNotes && (
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        <div className="text-xs text-slate-500 font-medium mb-1">HANDOVER NOTES</div>
+                        <div className="text-xs text-slate-700 bg-white rounded p-2 border border-slate-200">
+                          {shift.handoverNotes}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </div>

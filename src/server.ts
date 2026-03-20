@@ -1,6 +1,9 @@
 import Fastify, { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import { AppError } from './lib/errors.js';
+import authPlugin from './plugins/auth.plugin.js';
+import rbacPlugin from './plugins/rbac.plugin.js';
+import authRoutes from './routes/auth.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -21,6 +24,13 @@ export function buildApp() {
 
   // Health check placeholder
   app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+
+  // Auth & RBAC plugins (before routes)
+  app.register(authPlugin);
+  app.register(rbacPlugin);
+
+  // Routes
+  app.register(authRoutes);
 
   return app;
 }

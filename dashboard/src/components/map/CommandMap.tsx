@@ -6,7 +6,7 @@ import { Navigation } from 'lucide-react';
 
 // El Gouna fallback center
 const DEFAULT_CENTER: [number, number] = [33.67128, 27.39747];
-const DEFAULT_ZOOM = 13.5;
+const DEFAULT_ZOOM = 12.5;
 
 export function CommandMap({ children }: { children?: React.ReactNode }) {
   const mapContainer = useRef<HTMLDivElement>(null);

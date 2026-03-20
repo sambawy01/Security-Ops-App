@@ -4,4 +4,6 @@ dist
 *.log
 prisma/*.db
 
+data/
+
 /src/generated/prisma

@@ -29,6 +29,7 @@
   "homepage": "https://github.com/sambawy01/Security-Ops-App#readme",
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@fastify/multipart": "^9.4.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "bcrypt": "^6.0.0",

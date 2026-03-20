@@ -43,6 +43,11 @@ async function calculateSlaDeadlines(categoryId: string | undefined | null, prio
 }
 
 const incidentsRoutes: FastifyPluginAsync = async (app) => {
+  // GET /api/v1/categories — List all incident categories (any authenticated role)
+  app.get('/api/v1/categories', async () => {
+    return prisma.category.findMany({ orderBy: { nameEn: 'asc' } });
+  });
+
   // GET /api/v1/incidents/geojson — Open/active incidents as GeoJSON
   app.get('/api/v1/incidents/geojson', {
     config: { allowedRoles: LIST_ROLES },

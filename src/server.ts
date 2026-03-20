@@ -12,6 +12,8 @@ import incidentsRoutes from './routes/incidents.routes.js';
 import shiftsRoutes from './routes/shifts.routes.js';
 import patrolsRoutes from './routes/patrols.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import mediaRoutes from './routes/media.routes.js';
+import syncRoutes from './routes/sync.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -53,6 +55,8 @@ export function buildApp() {
   app.register(shiftsRoutes);
   app.register(patrolsRoutes);
   app.register(dashboardRoutes);
+  app.register(mediaRoutes);
+  app.register(syncRoutes);
 
   return app;
 }

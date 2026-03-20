@@ -15,6 +15,23 @@ const STATUS_CHANGE_ROLES = ['supervisor', 'manager', 'assistant_manager', 'hr_a
 const LIST_ROLES = ['officer', 'supervisor', 'hr_admin', 'manager', 'assistant_manager', 'operator'];
 
 const shiftsRoutes: FastifyPluginAsync = async (app) => {
+  // GET /api/v1/shifts/my-current — Current or next shift for the authenticated officer
+  app.get('/api/v1/shifts/my-current', {
+    config: { allowedRoles: LIST_ROLES },
+  }, async (request) => {
+    const now = new Date();
+    const shift = await prisma.shift.findFirst({
+      where: {
+        officerId: request.user.officerId,
+        status: { in: ['scheduled', 'active'] },
+        scheduledStart: { lte: new Date(now.getTime() + 24 * 60 * 60 * 1000) },
+      },
+      orderBy: { scheduledStart: 'asc' },
+      include: { zone: { select: { nameAr: true, nameEn: true } } },
+    });
+    return shift || null;
+  });
+
   // GET /api/v1/shifts — List shifts
   app.get('/api/v1/shifts', {
     config: { allowedRoles: LIST_ROLES },

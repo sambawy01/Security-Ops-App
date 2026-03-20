@@ -61,12 +61,11 @@ export async function apiFetch<T>(
 
   const json = await res.json();
 
-  // Unwrap { data: [...] } wrapper from backend list endpoints
+  // Unwrap { data: ... } wrapper from backend responses
   const result =
     json &&
     typeof json === 'object' &&
     'data' in json &&
-    Array.isArray((json as Record<string, unknown>).data) &&
     Object.keys(json as Record<string, unknown>).length === 1
       ? ((json as Record<string, unknown>).data as T)
       : (json as T);

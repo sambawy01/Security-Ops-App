@@ -25,8 +25,8 @@ export function CommandMap({ children }: { children?: React.ReactNode }) {
         },
         layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
       },
-      center: [33.858, 27.1825],
-      zoom: 14,
+      center: [33.852, 27.182],
+      zoom: 14.5,
     });
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');

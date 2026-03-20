@@ -14,6 +14,7 @@ import patrolsRoutes from './routes/patrols.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import mediaRoutes from './routes/media.routes.js';
 import syncRoutes from './routes/sync.routes.js';
+import aiRoutes from './routes/ai.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -57,6 +58,7 @@ export function buildApp() {
   app.register(dashboardRoutes);
   app.register(mediaRoutes);
   app.register(syncRoutes);
+  app.register(aiRoutes);
 
   return app;
 }

@@ -95,10 +95,14 @@ Single rack-mount server at El Gouna data room.
 - **Device binding:** Each officer bound to one device via `device_id`. Login from unregistered device rejected.
 - **Failed attempt lockout:** 5 failed PINs → 15 min lockout. Supervisor notified.
 - **Biometric unlock:** After initial PIN auth, subsequent sessions can use fingerprint/face (device-native)
-- Four roles: `officer`, `supervisor`, `manager`, `admin`
-- Supervisor scoped to their assigned zone(s)
-- Manager sees all zones
-- Admin configures system (zones, SLA rules, categories, shifts)
+- Seven roles: `officer`, `supervisor`, `operator`, `hr_admin`, `secretary`, `assistant_manager`, `manager`
+- `officer`: mobile app, own assignments/patrols/shift
+- `supervisor`: zone-scoped incidents, personnel, patrols
+- `operator`: all-zone command map + incident dispatch (ops room)
+- `hr_admin`: scheduling, officer profiles, attendance
+- `secretary`: read-only reports and incident history, PDF export
+- `assistant_manager`: all zones, incidents, personnel, reports (no system config)
+- `manager`: everything including system config (zones, SLA rules, categories, users)
 
 **API rate limiting:**
 - Per-device: 60 req/min general, 120 req/min for location updates
@@ -237,14 +241,14 @@ Uses existing El Gouna security WhatsApp Business account.
 **Personnel & Zones:**
 
 ```
-officers        — id, name_ar, name_en, badge_number, rank, role, zone_id, phone, device_id, status, photo_path, pin_hash, failed_login_attempts, locked_until
+officers        — id, name_ar, name_en, badge_number, rank, role(officer|supervisor|operator|hr_admin|secretary|assistant_manager|manager), zone_id, phone, device_id, status, photo_path, pin_hash, failed_login_attempts, locked_until
 zones           — id, name_ar, name_en, boundary(PostGIS polygon), supervisor_id, color
 checkpoints     — id, name_ar, name_en, zone_id, location(PostGIS point), type(gate|patrol|fixed), status
-shifts          — id, officer_id, zone_id, status(scheduled|active|completed|no_show), scheduled_start, scheduled_end, actual_check_in, actual_check_out, check_in_location(PostGIS), check_out_location(PostGIS), handover_notes
+shifts          — id, officer_id, zone_id, status(scheduled|active|completed|no_show|called_off), scheduled_start, scheduled_end, actual_check_in, actual_check_out, check_in_location(PostGIS), check_out_location(PostGIS), handover_notes, is_overtime(boolean default false), parent_shift_id(nullable FK→shifts)
 patrol_routes   — id, name, zone_id, estimated_duration_min
 patrol_route_checkpoints — id, route_id, checkpoint_id, sequence_order, expected_dwell_min
 patrol_logs     — id, shift_id, route_id, started_at, completed_at
-patrol_checkpoints — id, patrol_log_id, checkpoint_id, arrived_at, gps_location(PostGIS), confirmed(boolean)
+patrol_checkpoints — id, patrol_log_id, checkpoint_id, arrived_at, gps_location(PostGIS), confirmed(boolean), skip_reason(nullable text)
 officer_locations — id, officer_id, location(PostGIS point), timestamp, accuracy_meters
                    (partitioned by date, retained 90 days, indexed on officer_id + timestamp)
 ```
@@ -253,7 +257,7 @@ officer_locations — id, officer_id, location(PostGIS point), timestamp, accura
 
 ```
 categories       — id, name_ar, name_en, parent_id, default_priority, icon
-incidents        — id, title, description, category_id, priority(critical|high|medium|low), status(open|assigned|in_progress|escalated|resolved|closed), zone_id, location(PostGIS), reporter_type(officer|resident|whatsapp), reporter_phone, created_by_officer_id, assigned_officer_id, created_at, assigned_at, sla_response_deadline, sla_resolution_deadline, resolved_at, closed_at
+incidents        — id, title, description, category_id, priority(critical|high|medium|low), status(open|assigned|in_progress|escalated|resolved|closed|cancelled), zone_id, location(PostGIS), reporter_type(officer|resident|whatsapp), reporter_phone, created_by_officer_id, assigned_officer_id, related_incident_id(nullable FK→incidents), awaiting_external(boolean default false), cancel_reason, created_at, assigned_at, sla_response_deadline, sla_resolution_deadline, resolved_at, closed_at
 incident_updates — id, incident_id, author_id, type(note|photo|voice_note|status_change|escalation|assignment), content, metadata(jsonb), created_at
                    (metadata stores structured data per type: status_change={old,new}, assignment={old_officer,new_officer}, photo={file_path,size})
 incident_media   — id, incident_id, type(photo|voice_note), file_path, file_size, created_at
@@ -281,6 +285,12 @@ whatsapp_messages — id, incident_id, direction(inbound|outbound), sender_phone
 audit_logs       — id, actor_id, actor_role, action, entity_type, entity_id, old_value(jsonb), new_value(jsonb), ip_address, device_id, created_at
                    (immutable append-only table, retained indefinitely, indexed on entity_type + entity_id)
 sync_queue       — id, device_id, officer_id, action_type, payload(jsonb), server_seq(bigint), created_at_device, received_at_server, processed_at, conflict_status(none|resolved|rejected)
+```
+
+**Performance (materialized, refreshed by BullMQ job every 15 min):**
+
+```
+performance_metrics — officer_id, zone_id, period_type(daily|weekly|monthly), period_start, avg_response_time_sec, sla_compliance_pct, patrol_completion_pct, incidents_handled, escalation_rate_pct, no_show_count, avg_checkin_delta_min, computed_at
 ```
 
 **Indexes:**

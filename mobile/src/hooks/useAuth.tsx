@@ -8,6 +8,7 @@ import React, {
 import type { ReactNode } from 'react';
 import type { User } from '../types';
 import * as authLib from '../lib/auth';
+import { registerForPushNotifications } from '../lib/notifications';
 
 interface AuthContextValue {
   user: User | null;
@@ -33,6 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (badge: string, pin: string) => {
     const u = await authLib.login(badge, pin);
     setUser(u);
+    // Fire and forget push notification registration
+    registerForPushNotifications().catch(() => {});
   }, []);
 
   const logout = useCallback(async () => {

@@ -6,6 +6,7 @@ import rbacPlugin from './plugins/rbac.plugin.js';
 import authRoutes from './routes/auth.routes.js';
 import zonesRoutes from './routes/zones.routes.js';
 import officersRoutes from './routes/officers.routes.js';
+import incidentsRoutes from './routes/incidents.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -35,6 +36,7 @@ export function buildApp() {
   app.register(authRoutes);
   app.register(zonesRoutes);
   app.register(officersRoutes);
+  app.register(incidentsRoutes);
 
   return app;
 }

@@ -277,6 +277,68 @@ function ReportDetail({ id }: { id: string }) {
           'Checkpoints': `${c.patrols.checkpointsConfirmed}/${c.patrols.checkpointsTotal}`,
         }} title="Patrols" />}
 
+        {/* Incident Brief (daily) */}
+        {c.incidentBrief && (
+          <div className="mb-4">
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+              Incident Brief — {c.incidentBrief.length} Incidents
+            </h4>
+            <div className="space-y-2">
+              {c.incidentBrief.map((inc: any) => (
+                <details key={inc.id} className="rounded-md border border-slate-200 overflow-hidden group">
+                  <summary className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors">
+                    <span className="font-mono text-[10px] text-slate-400 shrink-0">{inc.time}</span>
+                    <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${
+                      inc.priority === 'critical' ? 'bg-red-500' :
+                      inc.priority === 'high' ? 'bg-orange-500' :
+                      inc.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                    }`} />
+                    <span className="text-xs font-medium text-slate-900 flex-1 truncate">{inc.title}</span>
+                    <span className="text-[10px] text-slate-500 shrink-0">{inc.zone}</span>
+                    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                      inc.status === 'resolved' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                    }`}>{inc.status}</span>
+                  </summary>
+                  <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]">
+                    <div>
+                      <span className="text-slate-500">ID:</span>
+                      <span className="ml-1 font-mono text-slate-900">{inc.id}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Category:</span>
+                      <span className="ml-1 text-slate-900">{inc.category}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Assigned:</span>
+                      <span className="ml-1 text-slate-900">{inc.assignedTo}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Priority:</span>
+                      <span className={`ml-1 font-semibold ${
+                        inc.priority === 'critical' ? 'text-red-700' :
+                        inc.priority === 'high' ? 'text-orange-700' :
+                        inc.priority === 'medium' ? 'text-yellow-700' : 'text-blue-700'
+                      }`}>{inc.priority}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Response:</span>
+                      <span className="ml-1 font-mono text-green-700">{inc.responseTime}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Resolution:</span>
+                      <span className={`ml-1 font-mono ${inc.status === 'resolved' ? 'text-green-700' : 'text-amber-700'}`}>{inc.resolutionTime}</span>
+                    </div>
+                    <div className="col-span-2 md:col-span-4">
+                      <span className="text-slate-500">Summary:</span>
+                      <p className="mt-0.5 text-slate-700 leading-relaxed">{inc.summary}</p>
+                    </div>
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Notable Events */}
         {c.notableEvents && (
           <div className="mb-4">

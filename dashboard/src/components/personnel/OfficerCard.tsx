@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, MapPin, Phone, Shield, Clock, AlertTriangle, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Badge } from '../ui/badge';
@@ -17,14 +18,21 @@ const statusDot: Record<string, string> = {
   suspended: 'bg-red-500',
 };
 
-const statusLabel: Record<string, string> = {
+const statusLabelEn: Record<string, string> = {
   active: 'Active',
   device_offline: 'Device Offline',
   off_duty: 'Off Duty',
   suspended: 'Suspended',
 };
 
-const roleLabel: Record<string, string> = {
+const statusLabelAr: Record<string, string> = {
+  active: 'نشط',
+  device_offline: 'الجهاز غير متصل',
+  off_duty: 'خارج الخدمة',
+  suspended: 'موقوف',
+};
+
+const roleLabelEn: Record<string, string> = {
   officer: 'Officer',
   supervisor: 'Supervisor',
   operator: 'Operator',
@@ -32,6 +40,16 @@ const roleLabel: Record<string, string> = {
   secretary: 'Secretary',
   assistant_manager: 'Asst. Manager',
   manager: 'Manager',
+};
+
+const roleLabelAr: Record<string, string> = {
+  officer: 'ضابط',
+  supervisor: 'مشرف',
+  operator: 'غرفة عمليات',
+  hr_admin: 'إدارة أفراد',
+  secretary: 'سكرتارية',
+  assistant_manager: 'نائب المدير',
+  manager: 'مدير الأمن',
 };
 
 interface OfficerProfile {
@@ -50,10 +68,15 @@ interface OfficerProfile {
 }
 
 export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const [expanded, setExpanded] = useState(false);
   const [profile, setProfile] = useState<OfficerProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  const statusLabel = isAr ? statusLabelAr : statusLabelEn;
+  const roleLabel = isAr ? roleLabelAr : roleLabelEn;
 
   // Auto-expand and scroll into view when navigating from map
   useEffect(() => {
@@ -95,7 +118,7 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
           recentIncidents: Array.isArray(incidents) ? incidents.slice(0, 5) : [],
           metrics: {
             totalIncidentsHandled: totalHandled,
-            avgResponseTime: totalHandled > 0 ? `${(2 + Math.random() * 3).toFixed(1)} min` : 'N/A',
+            avgResponseTime: totalHandled > 0 ? `${(2 + Math.random() * 3).toFixed(1)} ${isAr ? 'د' : 'min'}` : 'N/A',
             slaCompliance: totalHandled > 0 ? Math.round(75 + Math.random() * 25) : 0,
             patrolCompletion: Math.round(85 + Math.random() * 15),
             shiftsThisMonth: completedShifts.length,
@@ -124,6 +147,8 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
     }
   };
 
+  const officerDisplayName = isAr ? ((officer as any).nameAr || officer.nameEn) : officer.nameEn;
+
   return (
     <div ref={cardRef} className={cn("bg-white border rounded-lg overflow-hidden transition-all duration-150 hover:border-slate-300", autoExpand ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200")}>
       {/* Header row — clickable */}
@@ -133,12 +158,12 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50/50 transition-colors"
       >
         <span className={cn('h-2.5 w-2.5 flex-shrink-0 rounded-full', dot)} />
-        <span className="text-sm font-medium text-slate-900 min-w-0 truncate">{officer.nameEn}</span>
+        <span className="text-sm font-medium text-slate-900 min-w-0 truncate">{officerDisplayName}</span>
         <span className="text-xs font-mono text-slate-500 flex-shrink-0">{officer.badgeNumber}</span>
         <Badge variant="default" className="flex-shrink-0">{roleLabel[officer.role] ?? officer.role}</Badge>
         <div className="flex-1" />
         {count !== null && count > 0 && (
-          <span className="text-xs text-slate-500">{count} active</span>
+          <span className="text-xs text-slate-500">{count} {isAr ? 'نشط' : 'active'}</span>
         )}
         <ChevronDown className={cn('h-4 w-4 text-slate-400 transition-transform', expanded && 'rotate-180')} />
       </button>
@@ -157,24 +182,26 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="flex items-center gap-2 text-xs">
                   <Shield className="h-3.5 w-3.5 text-slate-400" />
-                  <span className="text-slate-500">Role:</span>
+                  <span className="text-slate-500">{isAr ? 'الرتبة:' : 'Role:'}</span>
                   <span className="text-slate-900 font-medium">{roleLabel[officer.role] ?? officer.role}</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                  <span className="text-slate-500">Zone:</span>
+                  <span className="text-slate-500">{isAr ? 'المنطقة:' : 'Zone:'}</span>
                   <span className="text-slate-900 font-medium">
-                    {(profile.officer as any)?.zone?.nameEn ?? (officer as any).zoneName ?? 'Unassigned'}
+                    {isAr
+                      ? ((profile.officer as any)?.zone?.nameAr || (profile.officer as any)?.zone?.nameEn ?? (officer as any).zoneName ?? 'غير مكلف')
+                      : ((profile.officer as any)?.zone?.nameEn ?? (officer as any).zoneName ?? 'Unassigned')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <Phone className="h-3.5 w-3.5 text-slate-400" />
-                  <span className="text-slate-500">Phone:</span>
+                  <span className="text-slate-500">{isAr ? 'الهاتف:' : 'Phone:'}</span>
                   <span className="text-slate-900 font-mono">{officer.phone || 'N/A'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <Clock className="h-3.5 w-3.5 text-slate-400" />
-                  <span className="text-slate-500">Status:</span>
+                  <span className="text-slate-500">{isAr ? 'الحالة:' : 'Status:'}</span>
                   <span className={cn('font-medium', officer.status === 'active' ? 'text-green-700' : 'text-slate-600')}>
                     {statusLabel[officer.status] ?? officer.status}
                   </span>
@@ -184,18 +211,18 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
               {/* Performance Metrics */}
               <div>
                 <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" /> Performance Metrics
+                  <TrendingUp className="h-3 w-3" /> {t('personnel.performance')}
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <MetricCard label="Avg Response" value={profile.metrics.avgResponseTime} icon={<Clock className="h-3.5 w-3.5" />} good />
-                  <MetricCard label="SLA Compliance" value={`${profile.metrics.slaCompliance}%`} icon={<CheckCircle className="h-3.5 w-3.5" />} good={profile.metrics.slaCompliance >= 85} />
-                  <MetricCard label="Patrol Completion" value={`${profile.metrics.patrolCompletion}%`} icon={<MapPin className="h-3.5 w-3.5" />} good={profile.metrics.patrolCompletion >= 90} />
-                  <MetricCard label="Incidents Handled" value={String(profile.metrics.totalIncidentsHandled)} icon={<AlertTriangle className="h-3.5 w-3.5" />} good />
+                  <MetricCard label={t('personnel.avgResponse')} value={profile.metrics.avgResponseTime} icon={<Clock className="h-3.5 w-3.5" />} good />
+                  <MetricCard label={t('personnel.slaCompliance')} value={`${profile.metrics.slaCompliance}%`} icon={<CheckCircle className="h-3.5 w-3.5" />} good={profile.metrics.slaCompliance >= 85} />
+                  <MetricCard label={t('personnel.patrolCompletion')} value={`${profile.metrics.patrolCompletion}%`} icon={<MapPin className="h-3.5 w-3.5" />} good={profile.metrics.patrolCompletion >= 90} />
+                  <MetricCard label={t('personnel.incidentsHandled')} value={String(profile.metrics.totalIncidentsHandled)} icon={<AlertTriangle className="h-3.5 w-3.5" />} good />
                 </div>
                 <div className="grid grid-cols-3 gap-2 mt-2">
-                  <MetricCard label="Shifts This Month" value={String(profile.metrics.shiftsThisMonth)} icon={<Clock className="h-3.5 w-3.5" />} good />
-                  <MetricCard label="On-Time Rate" value={`${profile.metrics.onTimeRate}%`} icon={<CheckCircle className="h-3.5 w-3.5" />} good={profile.metrics.onTimeRate >= 90} />
-                  <MetricCard label="No-Shows" value={String(profile.metrics.noShows)} icon={<XCircle className="h-3.5 w-3.5" />} good={profile.metrics.noShows === 0} />
+                  <MetricCard label={t('personnel.shiftsThisMonth')} value={String(profile.metrics.shiftsThisMonth)} icon={<Clock className="h-3.5 w-3.5" />} good />
+                  <MetricCard label={t('personnel.onTimeRate')} value={`${profile.metrics.onTimeRate}%`} icon={<CheckCircle className="h-3.5 w-3.5" />} good={profile.metrics.onTimeRate >= 90} />
+                  <MetricCard label={t('personnel.noShows')} value={String(profile.metrics.noShows)} icon={<XCircle className="h-3.5 w-3.5" />} good={profile.metrics.noShows === 0} />
                 </div>
               </div>
 
@@ -203,7 +230,7 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
               {profile.recentIncidents.length > 0 && (
                 <div>
                   <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                    Recent Incidents ({profile.recentIncidents.length})
+                    {t('personnel.recentIncidents')} ({profile.recentIncidents.length})
                   </h4>
                   <div className="space-y-1">
                     {profile.recentIncidents.map((inc: any) => (
@@ -217,7 +244,7 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
                         <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium',
                           inc.status === 'resolved' || inc.status === 'closed' ? 'bg-green-100 text-green-800' :
                           inc.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'
-                        )}>{inc.status}</span>
+                        )}>{isAr ? (t(`incident.${inc.status}`, inc.status)) : inc.status}</span>
                       </div>
                     ))}
                   </div>
@@ -228,25 +255,32 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
               {profile.recentShifts.length > 0 && (
                 <div>
                   <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                    Recent Shifts ({profile.recentShifts.length})
+                    {t('personnel.recentShifts')} ({profile.recentShifts.length})
                   </h4>
                   <div className="space-y-1">
                     {profile.recentShifts.map((s: any) => {
                       const start = new Date(s.scheduledStart);
-                      const shiftType = start.getHours() >= 6 && start.getHours() < 18 ? 'Day' : 'Night';
+                      const shiftType = start.getHours() >= 6 && start.getHours() < 18
+                        ? (isAr ? 'نهاري' : 'Day')
+                        : (isAr ? 'ليلي' : 'Night');
+                      const shiftStatusLabel: Record<string, string> = isAr
+                        ? { active: 'نشط', completed: 'مكتمل', no_show: 'غياب', called_off: 'تم الإلغاء', scheduled: 'مجدول' }
+                        : { active: 'active', completed: 'completed', no_show: 'no_show', called_off: 'called_off', scheduled: 'scheduled' };
                       return (
                         <div key={s.id} className="flex items-center gap-2 text-xs bg-white rounded border border-slate-200 px-3 py-1.5">
                           <span className="font-mono text-slate-400 shrink-0">
-                            {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {start.toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
                           </span>
                           <span className="text-slate-700">{shiftType}</span>
-                          <span className="text-slate-500">{s.zone?.nameEn ?? ''}</span>
+                          <span className="text-slate-500">
+                            {isAr ? (s.zone?.nameAr || s.zone?.nameEn ?? '') : (s.zone?.nameEn ?? '')}
+                          </span>
                           <div className="flex-1" />
                           <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium',
                             s.status === 'active' || s.status === 'completed' ? 'bg-green-100 text-green-800' :
                             s.status === 'no_show' ? 'bg-red-100 text-red-800' :
                             s.status === 'called_off' ? 'bg-slate-100 text-slate-600' : 'bg-blue-100 text-blue-800'
-                          )}>{s.status}</span>
+                          )}>{shiftStatusLabel[s.status] ?? s.status}</span>
                         </div>
                       );
                     })}
@@ -257,7 +291,7 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
               {/* Skills */}
               {(officer as any).skills?.length > 0 && (
                 <div>
-                  <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Skills</h4>
+                  <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">{t('personnel.skills')}</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {(officer as any).skills.map((skill: string) => (
                       <span key={skill} className="inline-block px-2 py-0.5 rounded bg-slate-100 text-[10px] font-medium text-slate-700 border border-slate-200">

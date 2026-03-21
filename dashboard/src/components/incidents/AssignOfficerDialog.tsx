@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogTitle, DialogContent } from '../ui/dialog';
 import { Badge } from '../ui/badge';
 import { useOfficers } from '../../hooks/useOfficers';
@@ -19,15 +20,39 @@ const statusVariant: Record<string, 'success' | 'default' | 'medium'> = {
   busy: 'medium',
 };
 
+const statusLabelEn: Record<string, string> = {
+  on_duty: 'On Duty',
+  available: 'Available',
+  off_duty: 'Off Duty',
+  busy: 'Busy',
+  active: 'Active',
+  device_offline: 'Device Offline',
+  suspended: 'Suspended',
+};
+
+const statusLabelAr: Record<string, string> = {
+  on_duty: 'في الخدمة',
+  available: 'متاح',
+  off_duty: 'خارج الخدمة',
+  busy: 'مشغول',
+  active: 'نشط',
+  device_offline: 'الجهاز غير متصل',
+  suspended: 'موقوف',
+};
+
 export function AssignOfficerDialog({
   open,
   onClose,
   incidentId,
   zoneId,
 }: AssignOfficerDialogProps) {
+  const { i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const filters = zoneId ? { zoneId } : undefined;
   const { data: officers, isLoading: loadingOfficers } = useOfficers(filters);
   const assignMutation = useAssignIncident();
+
+  const statusLabel = isAr ? statusLabelAr : statusLabelEn;
 
   const sortedOfficers = officers
     ? [...officers].sort((a, b) => {
@@ -54,7 +79,7 @@ export function AssignOfficerDialog({
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Assign Officer</DialogTitle>
+      <DialogTitle>{isAr ? 'تعيين ضابط' : 'Assign Officer'}</DialogTitle>
       <DialogContent>
         {loadingOfficers && (
           <div className="flex items-center justify-center py-8">
@@ -64,7 +89,9 @@ export function AssignOfficerDialog({
 
         {!loadingOfficers && sortedOfficers.length === 0 && (
           <p className="py-8 text-center text-sm text-slate-500">
-            No officers available{zoneId ? ' in this zone' : ''}
+            {isAr
+              ? (zoneId ? 'لا يوجد ضباط متاحين في هذه المنطقة' : 'لا يوجد ضباط متاحين')
+              : (zoneId ? 'No officers available in this zone' : 'No officers available')}
           </p>
         )}
 
@@ -87,14 +114,14 @@ export function AssignOfficerDialog({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-900 truncate">
-                    {officer.nameEn}
+                    {isAr ? ((officer as any).nameAr || officer.nameEn) : officer.nameEn}
                   </p>
                   <p className="text-xs text-slate-500 font-mono">
-                    Badge: {officer.badgeNumber}
+                    {isAr ? 'الشارة:' : 'Badge:'} {officer.badgeNumber}
                   </p>
                 </div>
                 <Badge variant={statusVariant[officer.status] ?? 'default'}>
-                  {officer.status.replace('_', ' ')}
+                  {statusLabel[officer.status] ?? officer.status.replace('_', ' ')}
                 </Badge>
               </button>
             ))}
@@ -104,7 +131,7 @@ export function AssignOfficerDialog({
         {assignMutation.isPending && (
           <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Assigning officer...</span>
+            <span>{isAr ? 'جاري تعيين الضابط...' : 'Assigning officer...'}</span>
           </div>
         )}
       </DialogContent>

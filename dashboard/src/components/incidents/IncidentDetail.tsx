@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   Clock,
@@ -66,29 +67,27 @@ interface IncidentDetailData {
   }>;
 }
 
-function getAvailableActions(status: string): Array<{ action: string; label: string; variant: 'default' | 'destructive' | 'outline'; newStatus?: string }> {
+function getAvailableActions(status: string, isAr: boolean): Array<{ action: string; label: string; variant: 'default' | 'destructive' | 'outline'; newStatus?: string }> {
   switch (status) {
     case 'open':
-      return [{ action: 'assign', label: 'Assign Officer', variant: 'default' }];
+      return [{ action: 'assign', label: isAr ? 'تعيين ضابط' : 'Assign Officer', variant: 'default' }];
     case 'assigned':
       return [
-        { action: 'acknowledge', label: 'Acknowledge', variant: 'default' as const, newStatus: 'in_progress' },
+        { action: 'acknowledge', label: isAr ? 'تأكيد الاستلام' : 'Acknowledge', variant: 'default' as const, newStatus: 'in_progress' },
       ];
     case 'in_progress':
       return [
-        { action: 'resolve', label: 'Resolve', variant: 'default' as const, newStatus: 'resolved' },
-        { action: 'escalate', label: 'Escalate', variant: 'destructive' as const, newStatus: 'escalated' },
+        { action: 'resolve', label: isAr ? 'تم الحل' : 'Resolve', variant: 'default' as const, newStatus: 'resolved' },
+        { action: 'escalate', label: isAr ? 'تصعيد' : 'Escalate', variant: 'destructive' as const, newStatus: 'escalated' },
       ];
     case 'escalated':
-      // No de-escalate — security manager must take action.
-      // If unresolved, system auto-escalates to Ops Manager and C-level.
       return [
-        { action: 'resolve', label: 'Resolve Now', variant: 'default' as const, newStatus: 'resolved' },
-        { action: 'reassign', label: 'Reassign Officer', variant: 'outline' as const },
+        { action: 'resolve', label: isAr ? 'حل الآن' : 'Resolve Now', variant: 'default' as const, newStatus: 'resolved' },
+        { action: 'reassign', label: isAr ? 'إعادة تعيين' : 'Reassign Officer', variant: 'outline' as const },
       ];
     case 'resolved':
       return [
-        { action: 'close', label: 'Close', variant: 'default' as const, newStatus: 'closed' },
+        { action: 'close', label: isAr ? 'إغلاق' : 'Close', variant: 'default' as const, newStatus: 'closed' },
       ];
     default:
       return [];
@@ -103,6 +102,8 @@ const updateTypeIcon: Record<string, typeof Clock> = {
 };
 
 export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const { data, isLoading } = useIncidentDetail(incidentId);
   const updateMutation = useUpdateIncident();
   const addNoteMutation = useAddIncidentUpdate();
@@ -126,12 +127,12 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
   if (!incident) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-slate-500">Incident not found</p>
+        <p className="text-sm text-slate-500">{isAr ? 'البلاغ غير موجود' : 'Incident not found'}</p>
       </div>
     );
   }
 
-  const actions = getAvailableActions(incident.status);
+  const actions = getAvailableActions(incident.status, isAr);
   const canCancel = !['closed', 'cancelled'].includes(incident.status);
 
   const handleStatusChange = (newStatus: string) => {
@@ -141,12 +142,18 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
     });
   };
 
+  const recipientLabels: Record<string, { en: string; ar: string }> = {
+    all: { en: 'Broadcast', ar: 'إذاعة للجميع' },
+    assistant_manager: { en: 'To: Asst. Managers', ar: 'إلى: نواب المدير' },
+    supervisor: { en: 'To: Supervisors', ar: 'إلى: المشرفين' },
+    officer: { en: 'To: Officers', ar: 'إلى: الضباط' },
+    personnel: { en: 'To: All Personnel', ar: 'إلى: جميع الأفراد' },
+  };
+
   const handleSendNote = () => {
     if (!noteText.trim()) return;
-    const recipientLabel = noteRecipient === 'all' ? 'Broadcast' :
-      noteRecipient === 'assistant_manager' ? 'To: Asst. Managers' :
-      noteRecipient === 'supervisor' ? 'To: Supervisors' :
-      noteRecipient === 'officer' ? 'To: Officers' : 'To: All Personnel';
+    const rl = recipientLabels[noteRecipient] ?? recipientLabels.all;
+    const recipientLabel = isAr ? rl.ar : rl.en;
     addNoteMutation.mutate(
       {
         incidentId: incident.id,
@@ -170,6 +177,30 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
       )
     : [];
 
+  const noteRecipientButtons = [
+    { value: 'all', label: isAr ? 'إذاعة للجميع' : 'Broadcast All', icon: '📢' },
+    { value: 'assistant_manager', label: isAr ? 'نواب المدير' : 'Asst. Managers', icon: '👔' },
+    { value: 'supervisor', label: isAr ? 'المشرفين' : 'Supervisors', icon: '🎖️' },
+    { value: 'officer', label: isAr ? 'الضباط' : 'Officers', icon: '👮' },
+    { value: 'personnel', label: isAr ? 'جميع الأفراد' : 'All Personnel', icon: '👥' },
+  ];
+
+  const notePlaceholders: Record<string, { en: string; ar: string }> = {
+    all: { en: 'Broadcast to all personnel...', ar: 'إذاعة لجميع الأفراد...' },
+    assistant_manager: { en: 'Note to assistant managers...', ar: 'ملاحظة لنواب المدير...' },
+    supervisor: { en: 'Note to supervisors...', ar: 'ملاحظة للمشرفين...' },
+    officer: { en: 'Note to officers...', ar: 'ملاحظة للضباط...' },
+    personnel: { en: 'Note to all personnel...', ar: 'ملاحظة لجميع الأفراد...' },
+  };
+
+  const noteToLabel: Record<string, { en: string; ar: string }> = {
+    all: { en: 'Everyone', ar: 'الجميع' },
+    assistant_manager: { en: 'Asst. Managers', ar: 'نواب المدير' },
+    supervisor: { en: 'Supervisors', ar: 'المشرفين' },
+    officer: { en: 'Officers', ar: 'الضباط' },
+    personnel: { en: 'All Personnel', ar: 'جميع الأفراد' },
+  };
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -177,13 +208,13 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
         <button
           onClick={onClose}
           className="rounded-md p-1 text-slate-400 hover:text-slate-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-          aria-label="Close detail panel"
+          aria-label={isAr ? 'إغلاق لوحة التفاصيل' : 'Close detail panel'}
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-slate-500 font-mono">
-            Incident #{incident.id.slice(0, 8)}
+            {isAr ? 'بلاغ' : 'Incident'} #{incident.id.slice(0, 8)}
           </p>
           <h2 className="text-base font-semibold text-slate-900 truncate">
             {incident.title}
@@ -202,7 +233,7 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
             )}
           />
           <Badge variant={priorityVariant[incident.priority] ?? 'default'}>
-            {incident.priority}
+            {isAr ? t(`incident.${incident.priority}`, incident.priority) : incident.priority}
           </Badge>
           {incident.category && (
             <>
@@ -227,11 +258,11 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
         <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-100">
           <SlaTimer
             deadline={incident.slaResponseDeadline}
-            label="Response"
+            label={isAr ? 'الاستجابة' : 'Response'}
           />
           <SlaTimer
             deadline={incident.slaResolutionDeadline}
-            label="Resolution"
+            label={isAr ? 'الحل' : 'Resolution'}
           />
         </div>
 
@@ -239,7 +270,7 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
         <div className="space-y-3 px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="h-4 w-4 text-slate-400 flex-shrink-0" />
-            <span className="text-slate-500">Zone:</span>
+            <span className="text-slate-500">{isAr ? 'المنطقة:' : 'Zone:'}</span>
             <span className="text-slate-900 font-medium">
               {incident.zone?.nameEn ?? incident.zoneId?.slice(0, 8) ?? 'N/A'}
             </span>
@@ -248,9 +279,9 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
           {(incident.reporterPhone || incident.reporterChannel) && (
             <div className="flex items-center gap-2 text-sm">
               <MessageSquare className="h-4 w-4 text-slate-400 flex-shrink-0" />
-              <span className="text-slate-500">Reporter:</span>
+              <span className="text-slate-500">{isAr ? 'المبلغ:' : 'Reporter:'}</span>
               <span className="text-slate-900">
-                {incident.reporterChannel ?? 'Unknown'}{' '}
+                {incident.reporterChannel ?? (isAr ? 'غير معروف' : 'Unknown')}{' '}
                 {incident.reporterPhone && (
                   <span className="font-mono text-xs text-slate-500">
                     ({incident.reporterPhone})
@@ -262,7 +293,7 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
 
           <div className="flex items-center gap-2 text-sm">
             <User className="h-4 w-4 text-slate-400 flex-shrink-0" />
-            <span className="text-slate-500">Assigned:</span>
+            <span className="text-slate-500">{isAr ? 'المكلف:' : 'Assigned:'}</span>
             {incident.assignedOfficer ? (
               <span className="text-slate-900 font-medium">
                 {incident.assignedOfficer.nameEn}
@@ -270,17 +301,17 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
                   onClick={() => setAssignDialogOpen(true)}
                   className="ml-2 text-xs text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  [Reassign]
+                  [{isAr ? 'إعادة تعيين' : 'Reassign'}]
                 </button>
               </span>
             ) : (
               <span className="text-slate-400 italic">
-                Unassigned
+                {isAr ? 'غير مكلف' : 'Unassigned'}
                 <button
                   onClick={() => setAssignDialogOpen(true)}
                   className="ml-2 text-xs text-blue-600 hover:text-blue-700 font-medium not-italic"
                 >
-                  [Assign Officer]
+                  [{isAr ? 'تعيين ضابط' : 'Assign Officer'}]
                 </button>
               </span>
             )}
@@ -288,7 +319,7 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
 
           <div className="flex items-center gap-2 text-sm">
             <Clock className="h-4 w-4 text-slate-400 flex-shrink-0" />
-            <span className="text-slate-500">Created:</span>
+            <span className="text-slate-500">{isAr ? 'تاريخ الإنشاء:' : 'Created:'}</span>
             <span className="text-slate-900 font-mono text-xs">
               {formatDate(incident.createdAt)}
             </span>
@@ -298,14 +329,17 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
         {/* Actions */}
         <div className="px-6 py-4 border-b border-slate-100">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-            Actions
+            {isAr ? 'الإجراءات' : 'Actions'}
           </p>
           {incident.status === 'escalated' && (
             <div className="mb-3 rounded-md bg-red-50 border border-red-200 p-3">
-              <p className="text-xs font-semibold text-red-800">⚠ ESCALATED — Action Required</p>
+              <p className="text-xs font-semibold text-red-800">
+                {isAr ? '⚠ مصعّد — مطلوب إجراء' : '⚠ ESCALATED — Action Required'}
+              </p>
               <p className="text-xs text-red-700 mt-1">
-                This incident has been escalated. You must resolve or reassign it.
-                If no action is taken, it will auto-escalate to Operations Manager and C-level.
+                {isAr
+                  ? 'هذا البلاغ تم تصعيده. يجب حله أو إعادة تعيينه. إذا لم يتم اتخاذ إجراء، سيتم التصعيد تلقائياً لمدير العمليات والإدارة العليا.'
+                  : 'This incident has been escalated. You must resolve or reassign it. If no action is taken, it will auto-escalate to Operations Manager and C-level.'}
               </p>
             </div>
           )}
@@ -340,7 +374,7 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
                 onClick={() => handleStatusChange('cancelled')}
                 disabled={updateMutation.isPending}
               >
-                Cancel
+                {isAr ? 'إلغاء' : 'Cancel'}
               </Button>
             )}
             {updateMutation.isPending && (
@@ -352,10 +386,10 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
         {/* Timeline */}
         <div className="px-6 py-4 border-b border-slate-100">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-            Timeline
+            {isAr ? 'الجدول الزمني' : 'Timeline'}
           </p>
           {timeline.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">No updates yet</p>
+            <p className="text-sm text-slate-400 italic">{isAr ? 'لا توجد تحديثات' : 'No updates yet'}</p>
           ) : (
             <div className="space-y-3">
               {timeline.map((update) => {
@@ -388,18 +422,12 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
         {/* Add Note with Recipient Selection */}
         <div className="px-6 py-4">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-            Send Note
+            {isAr ? 'إرسال ملاحظة' : 'Send Note'}
           </p>
 
           {/* Recipient selector */}
           <div className="flex flex-wrap gap-1.5 mb-3">
-            {[
-              { value: 'all', label: 'Broadcast All', icon: '📢' },
-              { value: 'assistant_manager', label: 'Asst. Managers', icon: '👔' },
-              { value: 'supervisor', label: 'Supervisors', icon: '🎖️' },
-              { value: 'officer', label: 'Officers', icon: '👮' },
-              { value: 'personnel', label: 'All Personnel', icon: '👥' },
-            ].map((r) => (
+            {noteRecipientButtons.map((r) => (
               <button
                 key={r.value}
                 type="button"
@@ -430,25 +458,14 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
                   }
                 }}
                 placeholder={
-                  noteRecipient === 'all'
-                    ? 'Broadcast to all personnel...'
-                    : noteRecipient === 'assistant_manager'
-                    ? 'Note to assistant managers...'
-                    : noteRecipient === 'supervisor'
-                    ? 'Note to supervisors...'
-                    : noteRecipient === 'officer'
-                    ? 'Note to officers...'
-                    : 'Note to all personnel...'
+                  (notePlaceholders[noteRecipient] ?? notePlaceholders.all)[isAr ? 'ar' : 'en']
                 }
                 rows={2}
                 className="flex w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 resize-none"
-                aria-label="Note content"
+                aria-label={isAr ? 'محتوى الملاحظة' : 'Note content'}
               />
               <span className="absolute bottom-2 right-2 text-[10px] text-slate-400 font-mono">
-                To: {noteRecipient === 'all' ? 'Everyone' :
-                     noteRecipient === 'assistant_manager' ? 'Asst. Managers' :
-                     noteRecipient === 'supervisor' ? 'Supervisors' :
-                     noteRecipient === 'officer' ? 'Officers' : 'All Personnel'}
+                {isAr ? 'إلى:' : 'To:'} {(noteToLabel[noteRecipient] ?? noteToLabel.all)[isAr ? 'ar' : 'en']}
               </span>
             </div>
             <Button

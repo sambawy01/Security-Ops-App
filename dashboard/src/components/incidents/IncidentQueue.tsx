@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
 import { useIncidents } from '../../hooks/useIncidents';
 import { useZones } from '../../hooks/useZones';
@@ -11,7 +12,7 @@ interface IncidentQueueProps {
   selectedId?: string | null;
 }
 
-const statusOptions = [
+const statusOptionsEn = [
   { value: '', label: 'All Statuses' },
   { value: 'open', label: 'Open' },
   { value: 'assigned', label: 'Assigned' },
@@ -20,12 +21,29 @@ const statusOptions = [
   { value: 'resolved', label: 'Resolved' },
 ];
 
-const priorityOptions = [
+const statusOptionsAr = [
+  { value: '', label: 'جميع الحالات' },
+  { value: 'open', label: 'مفتوح' },
+  { value: 'assigned', label: 'مكلف' },
+  { value: 'in_progress', label: 'قيد التنفيذ' },
+  { value: 'escalated', label: 'مصعّد' },
+  { value: 'resolved', label: 'تم الحل' },
+];
+
+const priorityOptionsEn = [
   { value: '', label: 'All Priorities' },
   { value: 'critical', label: 'Critical' },
   { value: 'high', label: 'High' },
   { value: 'medium', label: 'Medium' },
   { value: 'low', label: 'Low' },
+];
+
+const priorityOptionsAr = [
+  { value: '', label: 'جميع الأولويات' },
+  { value: 'critical', label: 'حرج' },
+  { value: 'high', label: 'عالي' },
+  { value: 'medium', label: 'متوسط' },
+  { value: 'low', label: 'منخفض' },
 ];
 
 const priorityOrder: Record<string, number> = {
@@ -45,12 +63,17 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function IncidentQueue({ onSelectIncident, selectedId }: IncidentQueueProps) {
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
 
   const debouncedSearch = useDebounce(searchInput, 300);
+
+  const statusOptions = isAr ? statusOptionsAr : statusOptionsEn;
+  const priorityOptions = isAr ? priorityOptionsAr : priorityOptionsEn;
 
   const filters = useMemo(
     () => ({
@@ -66,13 +89,13 @@ export function IncidentQueue({ onSelectIncident, selectedId }: IncidentQueuePro
   const { data: zones } = useZones();
 
   const zoneOptions = useMemo(() => {
-    const base = [{ value: '', label: 'All Zones' }];
+    const base = [{ value: '', label: isAr ? 'جميع المناطق' : 'All Zones' }];
     if (!zones) return base;
     return [
       ...base,
-      ...zones.map((z) => ({ value: z.id, label: z.nameEn })),
+      ...zones.map((z) => ({ value: z.id, label: isAr ? (z.nameAr || z.nameEn) : z.nameEn })),
     ];
-  }, [zones]);
+  }, [zones, isAr]);
 
   const sortedIncidents = useMemo(() => {
     if (!incidents) return [];
@@ -90,11 +113,11 @@ export function IncidentQueue({ onSelectIncident, selectedId }: IncidentQueuePro
       <div className="space-y-3 border-b border-slate-200 p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">
-            Incident Queue
+            {isAr ? 'قائمة البلاغات' : 'Incident Queue'}
           </h2>
           {incidents && (
             <Badge variant="default">
-              {incidents.length} incident{incidents.length !== 1 ? 's' : ''}
+              {incidents.length} {isAr ? 'بلاغ' : (incidents.length !== 1 ? 'incidents' : 'incident')}
             </Badge>
           )}
         </div>
@@ -105,9 +128,9 @@ export function IncidentQueue({ onSelectIncident, selectedId }: IncidentQueuePro
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search incidents..."
+            placeholder={isAr ? 'بحث في البلاغات...' : 'Search incidents...'}
             className="flex h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-2 text-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
-            aria-label="Search incidents"
+            aria-label={isAr ? 'بحث في البلاغات' : 'Search incidents'}
           />
         </div>
 
@@ -116,19 +139,19 @@ export function IncidentQueue({ onSelectIncident, selectedId }: IncidentQueuePro
             options={statusOptions}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            aria-label="Filter by status"
+            aria-label={isAr ? 'تصفية حسب الحالة' : 'Filter by status'}
           />
           <Select
             options={priorityOptions}
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            aria-label="Filter by priority"
+            aria-label={isAr ? 'تصفية حسب الأولوية' : 'Filter by priority'}
           />
           <Select
             options={zoneOptions}
             value={zoneFilter}
             onChange={(e) => setZoneFilter(e.target.value)}
-            aria-label="Filter by zone"
+            aria-label={isAr ? 'تصفية حسب المنطقة' : 'Filter by zone'}
           />
         </div>
       </div>
@@ -149,7 +172,7 @@ export function IncidentQueue({ onSelectIncident, selectedId }: IncidentQueuePro
         {!isLoading && sortedIncidents.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-sm text-slate-500">
-              No incidents match your filters
+              {isAr ? 'لا توجد بلاغات مطابقة للبحث' : 'No incidents match your filters'}
             </p>
           </div>
         )}

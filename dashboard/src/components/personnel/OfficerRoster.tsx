@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
 import { useOfficers } from '../../hooks/useOfficers';
 import { useZones } from '../../hooks/useZones';
@@ -7,7 +8,7 @@ import { Badge } from '../ui/badge';
 import { Tabs, TabList, Tab, TabPanel } from '../ui/tabs';
 import { OfficerCard } from './OfficerCard';
 
-const roleOptions = [
+const roleOptionsEn = [
   { value: '', label: 'All Roles' },
   { value: 'officer', label: 'Officer' },
   { value: 'supervisor', label: 'Supervisor' },
@@ -16,6 +17,17 @@ const roleOptions = [
   { value: 'analyst', label: 'Analyst' },
   { value: 'admin', label: 'Admin' },
   { value: 'trainee', label: 'Trainee' },
+];
+
+const roleOptionsAr = [
+  { value: '', label: 'جميع الرتب' },
+  { value: 'officer', label: 'ضابط' },
+  { value: 'supervisor', label: 'مشرف' },
+  { value: 'commander', label: 'قائد' },
+  { value: 'dispatcher', label: 'مرسل' },
+  { value: 'analyst', label: 'محلل' },
+  { value: 'admin', label: 'مسؤول' },
+  { value: 'trainee', label: 'متدرب' },
 ];
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -28,11 +40,15 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function OfficerRoster({ autoExpandId }: { autoExpandId?: string | null }) {
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const [searchInput, setSearchInput] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
 
   const debouncedSearch = useDebounce(searchInput, 300);
+
+  const roleOptions = isAr ? roleOptionsAr : roleOptionsEn;
 
   // Fetch all officers (we filter client-side for tabs + search)
   const apiFilters = useMemo(
@@ -46,10 +62,10 @@ export function OfficerRoster({ autoExpandId }: { autoExpandId?: string | null }
   const { data: zones } = useZones();
 
   const zoneOptions = useMemo(() => {
-    const base = [{ value: '', label: 'All Zones' }];
+    const base = [{ value: '', label: isAr ? 'جميع المناطق' : 'All Zones' }];
     if (!zones) return base;
-    return [...base, ...zones.map((z) => ({ value: z.id, label: z.nameEn }))];
-  }, [zones]);
+    return [...base, ...zones.map((z) => ({ value: z.id, label: isAr ? (z.nameAr || z.nameEn) : z.nameEn }))];
+  }, [zones, isAr]);
 
   // Client-side filtering for role and search
   const filtered = useMemo(() => {
@@ -58,7 +74,7 @@ export function OfficerRoster({ autoExpandId }: { autoExpandId?: string | null }
       if (roleFilter && o.role !== roleFilter) return false;
       if (debouncedSearch) {
         const q = debouncedSearch.toLowerCase();
-        const nameMatch = o.nameEn.toLowerCase().includes(q);
+        const nameMatch = o.nameEn.toLowerCase().includes(q) || ((o as any).nameAr ?? '').includes(q);
         const badgeMatch = o.badgeNumber.toLowerCase().includes(q);
         if (!nameMatch && !badgeMatch) return false;
       }
@@ -84,7 +100,7 @@ export function OfficerRoster({ autoExpandId }: { autoExpandId?: string | null }
     if (list.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-sm text-slate-500">No officers match your filters</p>
+          <p className="text-sm text-slate-500">{isAr ? 'لا يوجد ضباط مطابقين للبحث' : 'No officers match your filters'}</p>
         </div>
       );
     }
@@ -105,19 +121,19 @@ export function OfficerRoster({ autoExpandId }: { autoExpandId?: string | null }
           <TabList className="border-b-0">
             <Tab value="on_duty">
               <span className="flex items-center gap-2">
-                On Duty
+                {t('personnel.onDuty')}
                 <Badge variant="success">{onDuty.length}</Badge>
               </span>
             </Tab>
             <Tab value="off_duty">
               <span className="flex items-center gap-2">
-                Off Duty
+                {t('personnel.offDuty')}
                 <Badge variant="default">{offDuty.length}</Badge>
               </span>
             </Tab>
             <Tab value="all">
               <span className="flex items-center gap-2">
-                All
+                {t('personnel.all')}
                 <Badge variant="default">{filtered.length}</Badge>
               </span>
             </Tab>
@@ -131,7 +147,7 @@ export function OfficerRoster({ autoExpandId }: { autoExpandId?: string | null }
               options={zoneOptions}
               value={zoneFilter}
               onChange={(e) => setZoneFilter(e.target.value)}
-              aria-label="Filter by zone"
+              aria-label={isAr ? 'تصفية حسب المنطقة' : 'Filter by zone'}
             />
           </div>
           <div className="w-44">
@@ -139,7 +155,7 @@ export function OfficerRoster({ autoExpandId }: { autoExpandId?: string | null }
               options={roleOptions}
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              aria-label="Filter by role"
+              aria-label={isAr ? 'تصفية حسب الرتبة' : 'Filter by role'}
             />
           </div>
           <div className="relative flex-1 min-w-[200px]">
@@ -148,9 +164,9 @@ export function OfficerRoster({ autoExpandId }: { autoExpandId?: string | null }
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by name or badge..."
+              placeholder={isAr ? 'بحث بالاسم أو رقم الشارة...' : 'Search by name or badge...'}
               className="flex h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-2 text-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
-              aria-label="Search officers"
+              aria-label={isAr ? 'بحث الضباط' : 'Search officers'}
             />
           </div>
         </div>

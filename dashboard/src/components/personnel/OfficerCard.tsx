@@ -208,6 +208,28 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
                 </div>
               </div>
 
+              {/* Quick Actions */}
+              <div className="flex gap-2">
+                <a
+                  href={`/?officer=${officer.id}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 transition-colors no-underline"
+                >
+                  📍 {isAr ? 'عرض الموقع على الخريطة' : 'View on Map'}
+                </a>
+                <a
+                  href="/broadcast"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-orange-600 text-white text-[11px] font-semibold hover:bg-orange-700 transition-colors no-underline"
+                >
+                  📢 {isAr ? 'إرسال تعليمات' : 'Send Instructions'}
+                </a>
+                <a
+                  href="/incidents"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900 text-white text-[11px] font-semibold hover:bg-slate-800 transition-colors no-underline"
+                >
+                  📋 {isAr ? 'تعيين بلاغ' : 'Assign Incident'}
+                </a>
+              </div>
+
               {/* Performance Metrics */}
               <div>
                 <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1">

@@ -68,24 +68,24 @@ export function OfficerMarkers() {
   const map = useMap();
   const { data: locations } = useOfficerLocations();
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
-  const [zoomLevel, setZoomLevel] = useState(12.5);
-
-  // Track zoom changes to resize markers
-  useEffect(() => {
-    if (!map) return;
-    const onZoom = () => {
-      const z = Math.round(map.getZoom() * 2) / 2; // Round to nearest 0.5
-      setZoomLevel((prev) => (prev !== z ? z : prev));
-    };
-    map.on('zoomend', onZoom);
-    return () => { map.off('zoomend', onZoom); };
-  }, [map]);
+  const prevDataRef = useRef<string>('');
 
   useEffect(() => {
     if (!map || !locations) return;
     injectStyles();
 
-    // Always rebuild on zoom change or data change
+    // Only rebuild if data changed (new officers or different set)
+    const dataKey = locations.map((l: any) => l.officer_id).sort().join(',');
+    if (dataKey === prevDataRef.current && markersRef.current.size > 0) {
+      // Just update positions
+      locations.forEach((loc: any) => {
+        const m = markersRef.current.get(loc.officer_id);
+        if (m && loc.lat != null && loc.lng != null) m.setLngLat([loc.lng, loc.lat]);
+      });
+      return;
+    }
+    prevDataRef.current = dataKey;
+
     markersRef.current.forEach((m) => m.remove());
     markersRef.current.clear();
 
@@ -105,7 +105,7 @@ export function OfficerMarkers() {
         : name.slice(0, 2).toUpperCase();
 
       const color = ROLE_COLORS[role] ?? ROLE_COLORS.officer;
-      const size = getMarkerSize(map);
+      const size = 28;
 
       // Create marker element with person icon
       const el = document.createElement('div');
@@ -160,7 +160,7 @@ export function OfficerMarkers() {
       markersRef.current.forEach((m) => m.remove());
       markersRef.current.clear();
     };
-  }, [map, locations, zoomLevel]);
+  }, [map, locations]);
 
   return null;
 }

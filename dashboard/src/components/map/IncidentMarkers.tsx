@@ -39,23 +39,18 @@ export function IncidentMarkers() {
   const map = useMap();
   const { data } = useIncidentsGeoJSON();
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
-  const [zoomLevel, setZoomLevel] = useState(12.5);
-
-  useEffect(() => {
-    if (!map) return;
-    const onZoom = () => {
-      const z = Math.round(map.getZoom() * 2) / 2;
-      setZoomLevel((prev) => (prev !== z ? z : prev));
-    };
-    map.on('zoomend', onZoom);
-    return () => { map.off('zoomend', onZoom); };
-  }, [map]);
+  const prevDataRef = useRef<string>('');
 
   useEffect(() => {
     if (!map || !data) return;
     injectPulseStyle();
 
     const features = data.features ?? [];
+
+    // Only rebuild if incident set changed
+    const dataKey = features.map((f: any) => f.properties?.id).sort().join(',');
+    if (dataKey === prevDataRef.current && markersRef.current.size > 0) return;
+    prevDataRef.current = dataKey;
 
     markersRef.current.forEach((m) => m.remove());
     markersRef.current.clear();
@@ -72,9 +67,7 @@ export function IncidentMarkers() {
       const status = props.status ?? 'open';
       const incidentId = props.id ?? '';
 
-      // Marker size based on zoom
-      const zoom = map.getZoom();
-      const markerSize = zoom >= 15 ? 18 : zoom >= 14 ? 16 : zoom >= 13 ? 12 : zoom >= 12 ? 9 : zoom >= 11 ? 7 : 5;
+      const markerSize = 14;
 
       // Marker element
       const el = document.createElement('div');
@@ -150,7 +143,7 @@ export function IncidentMarkers() {
       markersRef.current.forEach((m) => m.remove());
       markersRef.current.clear();
     };
-  }, [map, data, zoomLevel]);
+  }, [map, data]);
 
   return null;
 }

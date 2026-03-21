@@ -44,14 +44,6 @@ export function CommandMap({ children }: { children?: React.ReactNode }) {
       showUserHeading: true,
     }), 'top-right');
 
-    // Expose zoom scale for marker components to read
-    (map as any)._markerScale = 1;
-    const BASE_ZOOM = 14;
-    map.on('zoom', () => {
-      const zoom = map.getZoom();
-      (map as any)._markerScale = Math.max(0.3, Math.min(1.2, Math.pow(2, (zoom - BASE_ZOOM) * 0.5)));
-    });
-
     map.on('load', () => {
       setMapInstance(map);
 

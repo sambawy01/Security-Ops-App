@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useMap } from './MapContext';
 import { useOfficerLocations } from '../../hooks/useOfficers';
@@ -44,16 +44,6 @@ function personSVG(color: string, initial: string, size: number): string {
       <text x="${size/2}" y="${textY}" text-anchor="middle" fill="white" font-size="${fontSize}" font-weight="700" font-family="system-ui,sans-serif">${initial}</text>
     </svg>
   `;
-}
-
-function getMarkerSize(map: any): number {
-  const zoom = map?.getZoom?.() ?? 14;
-  if (zoom >= 15) return 36;
-  if (zoom >= 14) return 32;
-  if (zoom >= 13) return 24;
-  if (zoom >= 12) return 18;
-  if (zoom >= 11) return 14;
-  return 10;
 }
 
 const ROLE_COLORS: Record<string, string> = {

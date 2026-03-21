@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useMap } from './MapContext';
 import { useIncidentsGeoJSON } from '../../hooks/useIncidents';

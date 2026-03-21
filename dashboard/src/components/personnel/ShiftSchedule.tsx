@@ -3,7 +3,6 @@ import { ChevronLeft, ChevronRight, MapPin, Clock, Shield } from 'lucide-react';
 import { useShifts } from '../../hooks/useShifts';
 import { useZones } from '../../hooks/useZones';
 import { Select } from '../ui/select';
-import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
 
 /** Format a date as YYYY-MM-DD */

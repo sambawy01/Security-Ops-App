@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, CheckCircle, BarChart3, Brain, ChevronDown, ChevronRight, Shield, Send, UserPlus, Megaphone, X, MessageSquare } from 'lucide-react';
+import { AlertTriangle, CheckCircle, BarChart3, Brain, ChevronDown, ChevronRight, Shield, Send, UserPlus, Megaphone, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { useIncidents } from '../../hooks/useIncidents';
@@ -28,7 +28,6 @@ const severityConfig = {
 };
 
 function BriefingCard({ item }: { item: BriefingItem }) {
-  const { t } = useTranslation();
   const config = severityConfig[item.severity];
   const [expanded, setExpanded] = useState(false);
   const [noteText, setNoteText] = useState('');
@@ -219,9 +218,9 @@ export function OpsBriefing() {
   const { data: incidents } = useIncidents();
   const { data: officers } = useOfficers();
   const { data: zones } = useZones();
-  const { data: patterns } = useAiPatterns();
+  const { data: _patterns } = useAiPatterns();
   const { data: anomalies } = useAiAnomalies();
-  const { data: staffing } = useAiStaffing();
+  const { data: _staffing } = useAiStaffing();
 
   // Build briefing items from live data
   const attentionItems: BriefingItem[] = [];
@@ -281,7 +280,6 @@ export function OpsBriefing() {
     });
   }
 
-  const offDutyCount = officerList.filter((o: any) => o.status === 'off_duty').length;
   const activeCount = officerList.filter((o: any) => o.status === 'active').length;
   if (activeCount > 0 && activeCount < officerList.length * 0.5) {
     attentionItems.push({

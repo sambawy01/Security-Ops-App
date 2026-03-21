@@ -73,7 +73,6 @@ export function OfficerCard({ officer }: OfficerCardProps) {
         const incidents = await apiFetch<any[]>(`/api/v1/incidents?assignedOfficerId=${officer.id}&take=5`);
 
         // Calculate mock performance metrics (in production, these come from performance_metrics table)
-        const resolvedIncidents = Array.isArray(incidents) ? incidents.filter((i: any) => i.status === 'resolved' || i.status === 'closed') : [];
         const totalHandled = Array.isArray(incidents) ? incidents.length : 0;
         const completedShifts = Array.isArray(shifts) ? shifts.filter((s: any) => s.status === 'completed' || s.status === 'active') : [];
         const noShows = Array.isArray(shifts) ? shifts.filter((s: any) => s.status === 'no_show').length : 0;

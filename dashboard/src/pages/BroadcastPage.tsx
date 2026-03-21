@@ -33,7 +33,7 @@ const audienceOptions: Array<{ value: Audience; label: string; labelAr: string; 
 ];
 
 export function BroadcastPage() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { user } = useAuth();
   const isAr = i18n.language === 'ar';
 

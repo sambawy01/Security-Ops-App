@@ -177,8 +177,8 @@ export function ShiftSchedule() {
             const sop = getShiftSOP(shift.scheduledStart, shift.scheduledEnd, isAr);
             const config = statusConfig[shift.status] ?? statusConfig.scheduled;
             const isExpanded = expandedShift === shift.id;
-            const zoneName = isAr ? (shift.zone?.nameAr || shift.zone?.nameEn ?? (isAr ? 'منطقة غير معروفة' : 'Unknown Zone')) : (shift.zone?.nameEn ?? 'Unknown Zone');
-            const officerName = isAr ? (shift.officer?.nameAr || shift.officer?.nameEn ?? (isAr ? 'غير معروف' : 'Unknown')) : (shift.officer?.nameEn ?? 'Unknown');
+            const zoneName = isAr ? (shift.zone?.nameAr || shift.zone?.nameEn || 'منطقة غير معروفة') : (shift.zone?.nameEn || 'Unknown Zone');
+            const officerName = isAr ? (shift.officer?.nameAr || shift.officer?.nameEn || 'غير معروف') : (shift.officer?.nameEn || 'Unknown');
             const badge = shift.officer?.badgeNumber ?? '';
             const dateLocale = isAr ? 'ar-EG' : 'en-US';
             const date = new Date(shift.scheduledStart).toLocaleDateString(dateLocale, {

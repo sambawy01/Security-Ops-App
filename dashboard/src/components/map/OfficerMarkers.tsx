@@ -37,11 +37,11 @@ export function OfficerMarkers() {
         : name.slice(0, 2).toUpperCase();
       const color = ROLE_COLORS[role] || ROLE_COLORS.officer;
 
-      // Create simple DOM element
+      // Use exact same pattern as IncidentMarkers — simple div, no SVG
       const el = document.createElement('div');
-      el.style.cssText = `width:28px;height:28px;cursor:pointer;position:relative;`;
+      el.style.cssText = `width:24px;height:24px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;font-family:system-ui,sans-serif;line-height:1;`;
+      el.textContent = initials;
       el.title = name;
-      el.innerHTML = `<svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="${color}" stroke="white" stroke-width="2"/><text x="14" y="18" text-anchor="middle" fill="white" font-size="10" font-weight="700" font-family="system-ui">${initials}</text></svg>`;
 
       const popup = new maplibregl.Popup({ offset: 14, closeButton: false }).setHTML(
         `<div style="font-size:12px;padding:4px"><strong>${name}</strong>${nameAr ? '<br/>' + nameAr : ''}<br/><span style="font-family:monospace;color:#666">${badge}</span></div>`

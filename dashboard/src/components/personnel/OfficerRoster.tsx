@@ -27,7 +27,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-export function OfficerRoster() {
+export function OfficerRoster({ autoExpandId }: { autoExpandId?: string | null }) {
   const [searchInput, setSearchInput] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -92,7 +92,7 @@ export function OfficerRoster() {
     return (
       <div className="space-y-2" role="list">
         {list.map((officer) => (
-          <OfficerCard key={officer.id} officer={officer} />
+          <OfficerCard key={officer.id} officer={officer} autoExpand={officer.id === autoExpandId} />
         ))}
       </div>
     );

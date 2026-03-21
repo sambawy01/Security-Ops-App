@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronDown, MapPin, Phone, Shield, Clock, AlertTriangle, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Badge } from '../ui/badge';
@@ -7,6 +7,7 @@ import type { Officer } from '../../types';
 
 interface OfficerCardProps {
   officer: Officer;
+  autoExpand?: boolean;
 }
 
 const statusDot: Record<string, string> = {
@@ -48,10 +49,21 @@ interface OfficerProfile {
   };
 }
 
-export function OfficerCard({ officer }: OfficerCardProps) {
+export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [profile, setProfile] = useState<OfficerProfile | null>(null);
   const [loading, setLoading] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Auto-expand and scroll into view when navigating from map
+  useEffect(() => {
+    if (autoExpand && !expanded) {
+      handleExpand();
+      setTimeout(() => {
+        cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 200);
+    }
+  }, [autoExpand]);
 
   const dot = statusDot[officer.status] ?? 'bg-slate-400';
   const count = (officer as any)._count?.assignedIncidents ?? (officer as any)._count?.incidents ?? null;
@@ -113,7 +125,7 @@ export function OfficerCard({ officer }: OfficerCardProps) {
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden transition-all duration-150 hover:border-slate-300">
+    <div ref={cardRef} className={cn("bg-white border rounded-lg overflow-hidden transition-all duration-150 hover:border-slate-300", autoExpand ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200")}>
       {/* Header row — clickable */}
       <button
         type="button"

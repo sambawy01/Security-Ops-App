@@ -1,21 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { IncidentQueue } from '../components/incidents/IncidentQueue';
 import { IncidentDetail } from '../components/incidents/IncidentDetail';
 import { Inbox } from 'lucide-react';
 
 export function IncidentsPage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(
-    null
+    searchParams.get('selected')
   );
+
+  // Sync URL param → state (when navigating from map)
+  useEffect(() => {
+    const fromUrl = searchParams.get('selected');
+    if (fromUrl && fromUrl !== selectedIncidentId) {
+      setSelectedIncidentId(fromUrl);
+    }
+  }, [searchParams]);
+
+  // When user selects an incident from the queue, update URL too
+  const handleSelect = (id: string | null) => {
+    setSelectedIncidentId(id);
+    if (id) {
+      setSearchParams({ selected: id }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  };
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
       {/* Left panel: Incident Queue */}
       <div className="w-[45%] flex-shrink-0 border-e border-slate-200 bg-slate-50/50 overflow-hidden">
         <IncidentQueue
-          onSelectIncident={setSelectedIncidentId}
+          onSelectIncident={handleSelect}
           selectedId={selectedIncidentId}
         />
       </div>
@@ -25,7 +45,7 @@ export function IncidentsPage() {
         {selectedIncidentId ? (
           <IncidentDetail
             incidentId={selectedIncidentId}
-            onClose={() => setSelectedIncidentId(null)}
+            onClose={() => handleSelect(null)}
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-400">

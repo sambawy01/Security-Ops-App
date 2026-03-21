@@ -1,7 +1,7 @@
 {
   "name": "sec-ops-os",
   "version": "1.0.0",
-  "description": "Security OS — backend API for resort community security operations",
+  "description": "Security OS \u2014 backend API for resort community security operations",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
@@ -14,7 +14,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
-    "demo:seed": "tsx scripts/simulate-demo.ts"
+    "demo:seed": "tsx scripts/simulate-demo.ts && tsx scripts/spread-elgouna.ts"
   },
   "repository": {
     "type": "git",

@@ -295,7 +295,7 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
                           </span>
                           <span className="text-slate-700">{shiftType}</span>
                           <span className="text-slate-500">
-                            {isAr ? (s.zone?.nameAr || s.zone?.nameEn ?? '') : (s.zone?.nameEn ?? '')}
+                            {isAr ? (s.zone?.nameAr || s.zone?.nameEn || '') : (s.zone?.nameEn || '')}
                           </span>
                           <div className="flex-1" />
                           <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium',

@@ -24,7 +24,19 @@ export function OfficerMarkers() {
   const map = useMap();
   const { data: locations } = useOfficerLocations();
   const markersRef = useRef<maplibregl.Marker[]>([]);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
+
+  // Create a single shared tooltip element attached to the map container
+  useEffect(() => {
+    if (!map) return;
+    const container = map.getContainer();
+    const tip = document.createElement('div');
+    tip.style.cssText = 'position:fixed;background:#0f172a;color:white;padding:8px 12px;border-radius:8px;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);direction:rtl;text-align:right;min-width:160px;font-size:12px;';
+    document.body.appendChild(tip);
+    tooltipRef.current = tip;
+    return () => { tip.remove(); tooltipRef.current = null; };
+  }, [map]);
 
   useEffect(() => {
     if (!map) return;
@@ -48,44 +60,33 @@ export function OfficerMarkers() {
         : name.slice(0, 2).toUpperCase();
       const color = ROLE_COLORS[role] || ROLE_COLORS.officer;
 
-      // Wrapper with hover tooltip
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'position:relative;';
-
-      // Circle marker
       const el = document.createElement('div');
       el.style.cssText = `width:24px;height:24px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;font-family:system-ui,sans-serif;line-height:1;`;
       el.textContent = initials;
 
-      // Hover tooltip card
-      const tooltip = document.createElement('div');
-      tooltip.style.cssText = `position:absolute;bottom:30px;left:50%;transform:translateX(-50%);background:#0f172a;color:white;padding:8px 12px;border-radius:8px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.3);direction:rtl;text-align:right;min-width:160px;`;
-      tooltip.innerHTML = `
-        <div style="font-size:12px;font-weight:700;">${nameAr || name}</div>
-        <div style="font-size:10px;color:#94a3b8;margin-top:2px;">${badge} · ${roleAr}</div>
-        <div style="margin-top:6px;padding-top:5px;border-top:1px solid #334155;">
-          <span style="font-size:9px;color:#60a5fa;font-weight:600;cursor:pointer;">👤 اضغط لعرض الملف ←</span>
-        </div>
-      `;
+      const tipContent = `<div style="font-weight:700">${nameAr || name}</div><div style="font-size:10px;color:#94a3b8;margin-top:2px">${badge} · ${roleAr}</div><div style="margin-top:5px;padding-top:4px;border-top:1px solid #334155;font-size:9px;color:#60a5fa">👤 اضغط لعرض الملف ←</div>`;
 
-      // Arrow
-      const arrow = document.createElement('div');
-      arrow.style.cssText = `position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0f172a;pointer-events:none;`;
-      tooltip.appendChild(arrow);
+      el.addEventListener('mouseenter', (e) => {
+        const tip = tooltipRef.current;
+        if (!tip) return;
+        tip.innerHTML = tipContent;
+        const rect = el.getBoundingClientRect();
+        tip.style.left = (rect.left + rect.width / 2 - 80) + 'px';
+        tip.style.top = (rect.top - tip.offsetHeight - 8) + 'px';
+        tip.style.opacity = '1';
+      });
 
-      wrapper.appendChild(el);
-      wrapper.appendChild(tooltip);
+      el.addEventListener('mouseleave', () => {
+        if (tooltipRef.current) tooltipRef.current.style.opacity = '0';
+      });
 
-      wrapper.addEventListener('mouseenter', () => { tooltip.style.opacity = '1'; });
-      wrapper.addEventListener('mouseleave', () => { tooltip.style.opacity = '0'; });
-
-      // Click → navigate
-      wrapper.addEventListener('click', (e) => {
+      el.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (tooltipRef.current) tooltipRef.current.style.opacity = '0';
         navigate(`/personnel?selected=${officerId}`);
       });
 
-      const marker = new maplibregl.Marker({ element: wrapper })
+      const marker = new maplibregl.Marker({ element: el })
         .setLngLat([loc.lng, loc.lat])
         .addTo(map);
 

@@ -27,9 +27,9 @@ RUN npm ci --omit=dev \
  && npm install --no-save tsx@4 prisma@7 \
  && npm cache clean --force
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/src/generated ./src/generated
+COPY --from=build /app/src ./src
 COPY --from=build /app/prisma ./prisma
-COPY prisma.config.ts ./
+COPY tsconfig.json prisma.config.ts ./
 
 EXPOSE 3000
 CMD ["sh", "-c", "set -e; npx prisma migrate deploy; exec npx tsx dist/index.js"]

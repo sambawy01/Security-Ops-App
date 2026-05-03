@@ -32,4 +32,4 @@ COPY --from=build /app/prisma ./prisma
 COPY prisma.config.ts ./
 
 EXPOSE 3000
-CMD ["sh", "-c", "set -e; prisma migrate deploy; exec tsx dist/index.js"]
+CMD ["sh", "-c", "set -e; npx prisma migrate deploy; exec npx tsx dist/index.js"]

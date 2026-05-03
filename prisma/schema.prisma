@@ -102,9 +102,12 @@ model Officer {
   pinHash             String        @map("pin_hash")
   failedLoginAttempts Int           @default(0) @map("failed_login_attempts")
   lockedUntil         DateTime?     @map("locked_until")
+  lastSeenAt          DateTime?     @map("last_seen_at")
   skills              String[]      @default([])
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  @@index([lastSeenAt(sort: Desc)])
 
   zone                Zone?              @relation("ZoneOfficers", fields: [zoneId], references: [id])
   supervisedZone      Zone?              @relation("ZoneSupervisor")

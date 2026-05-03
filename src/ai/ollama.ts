@@ -5,6 +5,12 @@ interface OllamaChatResponse {
   done: boolean;
 }
 
+function authHeaders(): Record<string, string> {
+  return config.OLLAMA_API_KEY
+    ? { Authorization: `Bearer ${config.OLLAMA_API_KEY}` }
+    : {};
+}
+
 /**
  * Send a chat request to Ollama and return the raw text response.
  * Never throws — returns empty string on any failure.
@@ -16,7 +22,7 @@ export async function chat(
   try {
     const res = await fetch(`${config.OLLAMA_URL}/api/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
         model: config.AI_MODEL,
         messages: [
@@ -86,6 +92,7 @@ export async function chatJSON<T>(
 export async function isAvailable(): Promise<boolean> {
   try {
     const res = await fetch(`${config.OLLAMA_URL}/api/tags`, {
+      headers: authHeaders(),
       signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) return false;

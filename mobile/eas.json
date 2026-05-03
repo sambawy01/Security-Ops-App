@@ -10,6 +10,13 @@
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
+        "EXPO_PUBLIC_API_URL": "https://backend-production-95c6c.up.railway.app"
+      }
+    },
+    "preview-lan": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
         "EXPO_PUBLIC_API_URL": "http://192.168.1.108:3000"
       }
     },
@@ -17,7 +24,7 @@
       "distribution": "store",
       "android": { "buildType": "app-bundle" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://CHANGE_ME.example.com"
+        "EXPO_PUBLIC_API_URL": "https://backend-production-95c6c.up.railway.app"
       }
     }
   },

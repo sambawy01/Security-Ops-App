@@ -5,9 +5,8 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "set -e; prisma migrate deploy; exec tsx dist/index.js",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 60,
+    "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 5
   }

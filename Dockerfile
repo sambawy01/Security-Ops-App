@@ -14,6 +14,7 @@ FROM deps AS build
 COPY tsconfig.json prisma.config.ts ./
 COPY prisma ./prisma
 COPY src ./src
+COPY scripts ./scripts
 RUN npx prisma generate
 RUN npx tsc
 
@@ -29,7 +30,10 @@ RUN npm ci --omit=dev \
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src ./src
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/scripts ./scripts
 COPY tsconfig.json prisma.config.ts ./
 
 EXPOSE 3000
-CMD ["sh", "-c", "set -e; npx prisma migrate deploy; exec npx tsx dist/index.js"]
+# bootstrap.ts handles migrate + conditional seed + today-scoped demo refresh,
+# then the API starts. Sequential so the server never serves a half-initialised DB.
+CMD ["sh", "-c", "set -e; npx tsx scripts/bootstrap.ts; exec npx tsx dist/index.js"]

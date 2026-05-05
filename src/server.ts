@@ -18,7 +18,9 @@ import aiRoutes from './routes/ai.routes.js';
 import whatsappRoutes from './routes/whatsapp.routes.js';
 
 export function buildApp() {
-  const app = Fastify({ logger: true });
+  // trustProxy honors X-Forwarded-* from Railway/Fly/Vercel edge so request.ip
+  // and request.protocol reflect the real client, not the platform proxy.
+  const app = Fastify({ logger: true, trustProxy: true });
 
   app.register(cors, { origin: true });
 

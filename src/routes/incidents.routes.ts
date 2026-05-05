@@ -96,7 +96,9 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Query filters
-    if (query.status) where.status = query.status;
+    if (query.status) {
+      where.status = Array.isArray(query.status) ? { in: query.status } : query.status;
+    }
     if (query.zone) where.zoneId = query.zone;
     if (query.priority) where.priority = query.priority;
     if (query.assignedOfficerId) where.assignedOfficerId = query.assignedOfficerId;

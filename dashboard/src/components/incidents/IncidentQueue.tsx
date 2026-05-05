@@ -63,7 +63,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function IncidentQueue({ onSelectIncident, selectedId }: IncidentQueueProps) {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isAr = i18n.language === 'ar';
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('');

@@ -30,7 +30,6 @@ export function OfficerMarkers() {
   // Create a single shared tooltip element attached to the map container
   useEffect(() => {
     if (!map) return;
-    const container = map.getContainer();
     const tip = document.createElement('div');
     tip.style.cssText = 'position:fixed;background:#0f172a;color:white;padding:8px 12px;border-radius:8px;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);direction:rtl;text-align:right;min-width:160px;font-size:12px;';
     document.body.appendChild(tip);
@@ -66,7 +65,7 @@ export function OfficerMarkers() {
 
       const tipContent = `<div style="font-weight:700">${nameAr || name}</div><div style="font-size:10px;color:#94a3b8;margin-top:2px">${badge} · ${roleAr}</div><div style="margin-top:5px;padding-top:4px;border-top:1px solid #334155;font-size:9px;color:#60a5fa">👤 اضغط لعرض الملف ←</div>`;
 
-      el.addEventListener('mouseenter', (e) => {
+      el.addEventListener('mouseenter', () => {
         const tip = tooltipRef.current;
         if (!tip) return;
         tip.innerHTML = tipContent;

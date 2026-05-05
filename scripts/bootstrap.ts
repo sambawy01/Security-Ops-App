@@ -46,6 +46,23 @@ async function main() {
     console.log(`[bootstrap] ${officerCount} officers present — skipping schema seed`);
   }
 
+  // Backfill orphan incidents: any row with a GPS point but no zone gets
+  // healed by the polygon that contains it. Idempotent — only touches rows
+  // where zone_id IS NULL, and only when a matching zone exists.
+  try {
+    const healed = await prisma.$executeRaw`
+      UPDATE incidents i
+      SET zone_id = z.id
+      FROM zones z
+      WHERE i.zone_id IS NULL
+        AND i.location IS NOT NULL
+        AND ST_Within(i.location, z.boundary)
+    `;
+    if (healed > 0) console.log(`[bootstrap] backfilled zone_id on ${healed} orphan incidents`);
+  } catch (e) {
+    console.error('[bootstrap] zone backfill failed (non-fatal):', e);
+  }
+
   // Today-scoped demo activity — refreshes shifts/incidents/locations on every
   // restart so a long-running container does not show data from days ago.
   run('demo: simulate', 'npx', ['tsx', 'scripts/simulate-demo.ts']);

@@ -173,6 +173,23 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
     }
     if (!priority) priority = 'medium';
 
+    // If caller didn't pin a zoneId but did supply a GPS point, derive the
+    // zone from the polygon that contains the point. Mobile NewIncidentScreen
+    // sends lat/lng without zoneId — without this, every mobile-created
+    // incident lands with zoneId=null and is invisible to zone-scoped queries.
+    let resolvedZoneId: string | null = body.zoneId ?? null;
+    if (!resolvedZoneId && body.lat != null && body.lng != null) {
+      const rows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id::text FROM zones
+        WHERE ST_Within(
+          ST_SetSRID(ST_MakePoint(${body.lng}, ${body.lat}), 4326),
+          boundary
+        )
+        LIMIT 1
+      `;
+      if (rows.length) resolvedZoneId = rows[0].id;
+    }
+
     // Calculate SLA deadlines
     const sla = await calculateSlaDeadlines(body.categoryId, priority);
 
@@ -183,7 +200,7 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
       categoryId: body.categoryId ?? null,
       priority: priority as any,
       status: 'open' as any,
-      zoneId: body.zoneId ?? null,
+      zoneId: resolvedZoneId,
       reporterType: (body.reporterType as any) ?? 'officer',
       reporterPhone: body.reporterPhone ?? null,
       slaResponseDeadline: sla.slaResponseDeadline,

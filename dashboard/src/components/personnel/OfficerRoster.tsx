@@ -7,6 +7,7 @@ import { Select } from '../ui/select';
 import { Badge } from '../ui/badge';
 import { Tabs, TabList, Tab, TabPanel } from '../ui/tabs';
 import { OfficerCard } from './OfficerCard';
+import { getPresence } from '../ui/PresenceDot';
 
 const roleOptionsEn = [
   { value: '', label: 'All Roles' },
@@ -82,9 +83,15 @@ export function OfficerRoster({ autoExpandId }: { autoExpandId?: string | null }
     });
   }, [officers, roleFilter, debouncedSearch]);
 
-  // Split by status
-  const onDuty = useMemo(() => filtered.filter((o) => o.status === 'active'), [filtered]);
-  const offDuty = useMemo(() => filtered.filter((o) => o.status === 'off_duty'), [filtered]);
+  // Split by real-time presence (heartbeat-driven), not the static
+  // Officer.status field. "On duty" means we've heard from this officer
+  // recently — online or idle. Everyone else is "off duty" regardless of
+  // their schedule.
+  const onDuty = useMemo(() => filtered.filter((o) => {
+    const p = getPresence(o.lastSeenAt);
+    return p === 'online' || p === 'idle';
+  }), [filtered]);
+  const offDuty = useMemo(() => filtered.filter((o) => getPresence(o.lastSeenAt) === 'offline'), [filtered]);
 
   const renderList = (list: typeof filtered) => {
     if (isLoading) {

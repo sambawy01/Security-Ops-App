@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, MapPin, Clock, Shield } from 'lucide-react';
 import { useShifts } from '../../hooks/useShifts';
 import { useZones } from '../../hooks/useZones';
 import { Select } from '../ui/select';
+import { PresenceDot } from '../ui/PresenceDot';
 import { cn } from '../../lib/utils';
 
 /** Format a date as YYYY-MM-DD */
@@ -51,7 +52,7 @@ interface ShiftData {
   actualCheckIn: string | null;
   actualCheckOut: string | null;
   handoverNotes: string | null;
-  officer?: { nameEn: string; nameAr: string; badgeNumber: string };
+  officer?: { nameEn: string; nameAr: string; badgeNumber: string; lastSeenAt?: string | null };
   zone?: { nameEn: string; nameAr: string };
 }
 
@@ -193,10 +194,13 @@ export function ShiftSchedule() {
                   className="w-full text-left px-4 py-3 hover:bg-slate-50/50 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    {/* Officer */}
+                    {/* Officer + presence */}
                     <div className="min-w-[160px]">
-                      <div className="text-sm font-medium text-slate-900">{officerName}</div>
-                      <div className="text-xs text-slate-500 font-mono">{badge}</div>
+                      <div className="flex items-center gap-2">
+                        <PresenceDot lastSeenAt={shift.officer?.lastSeenAt} isAr={isAr} />
+                        <span className="text-sm font-medium text-slate-900">{officerName}</span>
+                      </div>
+                      <div className="text-xs text-slate-500 font-mono ms-4">{badge}</div>
                     </div>
 
                     {/* Location (Zone) */}

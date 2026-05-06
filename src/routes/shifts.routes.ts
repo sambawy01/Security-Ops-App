@@ -75,7 +75,7 @@ const shiftsRoutes: FastifyPluginAsync = async (app) => {
         isOvertime: true,
         parentShiftId: true,
         createdAt: true,
-        officer: { select: { nameEn: true, nameAr: true, badgeNumber: true } },
+        officer: { select: { nameEn: true, nameAr: true, badgeNumber: true, lastSeenAt: true } },
         zone: { select: { nameEn: true, nameAr: true } },
       },
       orderBy: { scheduledStart: 'desc' },
@@ -95,7 +95,7 @@ const shiftsRoutes: FastifyPluginAsync = async (app) => {
     const shift = await prisma.shift.findUnique({
       where: { id },
       include: {
-        officer: { select: { nameEn: true, nameAr: true, badgeNumber: true } },
+        officer: { select: { nameEn: true, nameAr: true, badgeNumber: true, lastSeenAt: true } },
         zone: { select: { nameEn: true, nameAr: true } },
         patrolLogs: true,
       },

@@ -17,6 +17,7 @@ import mediaRoutes from './routes/media.routes.js';
 import syncRoutes from './routes/sync.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import whatsappRoutes from './routes/whatsapp.routes.js';
+import broadcastsRoutes from './routes/broadcasts.routes.js';
 
 export function buildApp() {
   // trustProxy honors X-Forwarded-* from Railway/Fly/Vercel edge so request.ip
@@ -71,6 +72,7 @@ export function buildApp() {
   app.register(syncRoutes);
   app.register(aiRoutes);
   app.register(whatsappRoutes);
+  app.register(broadcastsRoutes);
 
   return app;
 }

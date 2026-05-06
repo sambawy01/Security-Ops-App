@@ -12,6 +12,33 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Multipart upload — like apiFetch but lets fetch set the Content-Type header
+ * (it must include the boundary string, which only fetch can compute).
+ */
+export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const netState = await NetInfo.fetch();
+  if (!netState.isConnected) throw new ApiError(0, 'Offline — cannot upload');
+
+  const token = await getToken();
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    body: formData as unknown as BodyInit,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (res.status === 401) {
+    const refreshed = await refreshTokens();
+    if (refreshed) return apiUpload<T>(path, formData);
+    throw new ApiError(401, 'Session expired');
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    throw new ApiError(res.status, body.error ?? 'Upload failed');
+  }
+  return (await res.json()) as T;
+}
+
 export async function apiFetch<T>(
   path: string,
   options?: RequestInit & { cacheKey?: string },

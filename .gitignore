@@ -7,3 +7,4 @@ prisma/*.db
 data/
 
 /src/generated/prisma
+.claude/

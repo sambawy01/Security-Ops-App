@@ -39,8 +39,10 @@ const authPlugin: FastifyPluginAsync = async (app) => {
   app.decorateRequest('user', undefined as unknown as typeof app extends { user: infer U } ? U : any);
 
   app.addHook('onRequest', async (request: FastifyRequest) => {
-    // Skip auth for public routes
-    const publicPrefixes = ['/health', '/api/v1/auth/login', '/api/v1/auth/refresh', '/api/v1/whatsapp/webhook'];
+    // Skip auth for public routes. /media/ serves uploaded incident photos —
+    // filenames are random UUIDs, so the URL itself is the capability and
+    // gating with JWT would block direct <img src> loads from the dashboard.
+    const publicPrefixes = ['/health', '/api/v1/auth/login', '/api/v1/auth/refresh', '/api/v1/whatsapp/webhook', '/media/'];
     if (publicPrefixes.some(p => request.url.startsWith(p))) return;
 
     const authHeader = request.headers.authorization;

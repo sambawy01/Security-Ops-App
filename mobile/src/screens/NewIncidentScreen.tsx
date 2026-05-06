@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useCurrentLocation } from '../hooks/useLocation';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
-import { apiFetch } from '../lib/api';
+import { apiFetch, apiUpload } from '../lib/api';
 import { queueAction } from '../lib/sync';
 import type { Category } from '../types';
 
@@ -32,7 +32,7 @@ const PRIORITY_OPTIONS: {
 export function NewIncidentScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<any>();
-  const { location, loading: locationLoading } = useCurrentLocation();
+  const { location, loading: locationLoading, refresh: refreshLocation } = useCurrentLocation();
   const isOnline = useOnlineStatus();
 
   const [title, setTitle] = useState('');
@@ -99,26 +99,64 @@ export function NewIncidentScreen() {
 
     setSubmitting(true);
     try {
+      // Best-effort fresh GPS — if the screen's first acquisition didn't land
+      // (slow lock, denied permission, user submits too fast), try once more
+      // synchronously so the report carries a real location whenever possible.
+      let coords = location;
+      if (!coords) coords = await refreshLocation();
+
       const payload: Record<string, unknown> = {
         title: title.trim(),
         description: description.trim() || undefined,
         categoryId: categoryId || undefined,
         priority,
         reporterType: 'officer',
-        lat: location?.lat ?? undefined,
-        lng: location?.lng ?? undefined,
+        lat: coords?.lat ?? undefined,
+        lng: coords?.lng ?? undefined,
       };
 
-      if (isOnline) {
-        await apiFetch('/api/v1/incidents', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
-      } else {
+      if (!isOnline) {
         await queueAction('incident-create', {
           ...payload,
           photoUri: photoUri || undefined,
         });
+        Alert.alert(t('incident.submitted'), '', [
+          { text: t('common.ok'), onPress: () => navigation.goBack() },
+        ]);
+        return;
+      }
+
+      // Online: create incident, then attach photo (if any) so the dashboard
+      // can render it tied to the incident detail.
+      const created = await apiFetch<{ id: string }>('/api/v1/incidents', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      if (photoUri && created?.id) {
+        try {
+          const form = new FormData();
+          // Infer mime + extension from the URI suffix; ImagePicker on Android
+          // hands back a file:// URI like "...image-xyz.jpg"
+          const match = /\.(jpe?g|png|webp)(?:\?.*)?$/i.exec(photoUri);
+          const ext = (match?.[1] ?? 'jpg').toLowerCase();
+          const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+          form.append('file', {
+            uri: photoUri,
+            name: `incident-${created.id}.${ext === 'jpeg' ? 'jpg' : ext}`,
+            type: mime,
+          } as unknown as Blob);
+          await apiUpload(
+            `/api/v1/media/upload?incidentId=${encodeURIComponent(created.id)}&type=photo`,
+            form,
+          );
+        } catch {
+          // Photo failed but incident is already filed — surface a soft warning
+          // so the officer knows the report is in but the photo didn't attach.
+          Alert.alert(t('incident.submitted'), t('incident.photoUploadFailed') as string);
+          navigation.goBack();
+          return;
+        }
       }
 
       Alert.alert(t('incident.submitted'), '', [

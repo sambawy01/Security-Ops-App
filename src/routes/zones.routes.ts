@@ -127,6 +127,64 @@ const zonesRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
+  // GET /api/v1/patrol-routes/geojson — Patrol routes as GeoJSON LineStrings
+  // Each route becomes one LineString that visits its checkpoints in order.
+  app.get('/api/v1/patrol-routes/geojson', async () => {
+    const rows = await prisma.$queryRaw<Array<{
+      route_id: string;
+      route_name: string;
+      zone_id: string;
+      zone_name_en: string;
+      zone_name_ar: string;
+      color: string;
+      duration_min: number;
+      coordinates: [number, number][];
+      stops: number;
+    }>>`
+      SELECT
+        r.id::text AS route_id,
+        r.name AS route_name,
+        r.zone_id::text AS zone_id,
+        z.name_en AS zone_name_en,
+        z.name_ar AS zone_name_ar,
+        z.color AS color,
+        r.estimated_duration_min AS duration_min,
+        COUNT(prc.id)::int AS stops,
+        ARRAY_AGG(
+          ARRAY[ST_X(c.location), ST_Y(c.location)]
+          ORDER BY prc.sequence_order
+        ) AS coordinates
+      FROM patrol_routes r
+      JOIN zones z ON z.id = r.zone_id
+      JOIN patrol_route_checkpoints prc ON prc.route_id = r.id
+      JOIN checkpoints c ON c.id = prc.checkpoint_id
+      GROUP BY r.id, r.name, r.zone_id, z.name_en, z.name_ar, z.color, r.estimated_duration_min
+    `;
+
+    return {
+      type: 'FeatureCollection',
+      features: rows
+        .filter((r) => r.coordinates && r.coordinates.length >= 2)
+        .map((r) => ({
+          type: 'Feature',
+          properties: {
+            routeId: r.route_id,
+            name: r.route_name,
+            zoneId: r.zone_id,
+            zoneNameEn: r.zone_name_en,
+            zoneNameAr: r.zone_name_ar,
+            color: r.color,
+            durationMin: r.duration_min,
+            stops: r.stops,
+          },
+          geometry: {
+            type: 'LineString',
+            coordinates: r.coordinates,
+          },
+        })),
+    };
+  });
+
   // GET /api/v1/zones/:id/checkpoints — List checkpoints in a zone with lat/lng
   app.get('/api/v1/zones/:id/checkpoints', async (request) => {
     const { id } = zoneParamsSchema.parse((request as any).params);

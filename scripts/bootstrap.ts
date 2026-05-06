@@ -46,9 +46,28 @@ async function main() {
     console.log(`[bootstrap] ${officerCount} officers present — skipping schema seed`);
   }
 
+  // One-shot activity wipe: set WIPE_DEMO_ON_BOOT=true on the Railway service,
+  // deploy once, the next bootstrap clears all incidents/shifts/locations/AI
+  // artefacts. Unset the var afterwards so subsequent restarts are no-ops.
+  if (process.env.WIPE_DEMO_ON_BOOT === 'true') {
+    console.log('[bootstrap] WIPE_DEMO_ON_BOOT=true — wiping demo activity');
+    if (!run('wipe', 'npx', ['tsx', 'scripts/wipe-demo-activity.ts'])) {
+      // Don't fail boot — but log loudly
+      console.error('[bootstrap] wipe failed but continuing to start API');
+    }
+    console.log('[bootstrap] reminder: unset WIPE_DEMO_ON_BOOT before next deploy');
+  }
+
+  // Apply real El Gouna geography (zones, checkpoints, patrol routes).
+  // The script is idempotent — no-op when current state already matches the
+  // El Gouna dataset, so real patrol logs created through the app survive
+  // restart untouched.
+  run('geo: apply El Gouna', 'npx', ['tsx', 'scripts/apply-elgouna-geo.ts']);
+
   // Backfill orphan incidents: any row with a GPS point but no zone gets
   // healed by the polygon that contains it. Idempotent — only touches rows
-  // where zone_id IS NULL, and only when a matching zone exists.
+  // where zone_id IS NULL, and only when a matching zone exists. Runs after
+  // geo apply because zone polygons may have just changed.
   try {
     const healed = await prisma.$executeRaw`
       UPDATE incidents i
@@ -63,10 +82,8 @@ async function main() {
     console.error('[bootstrap] zone backfill failed (non-fatal):', e);
   }
 
-  // Today-scoped demo activity — refreshes shifts/incidents/locations on every
-  // restart so a long-running container does not show data from days ago.
-  run('demo: simulate', 'npx', ['tsx', 'scripts/simulate-demo.ts']);
-  run('demo: spread',   'npx', ['tsx', 'scripts/spread-elgouna.ts']);
+  // (Demo simulators removed — the live demo runs on real activity created
+  // through the dashboard + mobile, not synthetic data.)
 
   await prisma.$disconnect();
   console.log('[bootstrap] complete');

@@ -32,3 +32,11 @@ export function useCheckpointsGeoJSON() {
       apiFetch<GeoJSON.FeatureCollection>('/api/v1/checkpoints/geojson'),
   });
 }
+
+export function usePatrolRoutesGeoJSON() {
+  return useQuery({
+    queryKey: ['patrol-routes', 'geojson'],
+    queryFn: () =>
+      apiFetch<GeoJSON.FeatureCollection>('/api/v1/patrol-routes/geojson'),
+  });
+}

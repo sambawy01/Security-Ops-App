@@ -55,15 +55,30 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/api/v1/incidents/geojson', {
     config: { allowedRoles: LIST_ROLES },
   }, async (request) => {
-    const incidents = await prisma.$queryRaw`
-      SELECT i.id, i.title, i.priority, i.status, i.zone_id,
+    const user = request.user;
+    // Same role scoping as the JSON list — the map view of incidents must not
+    // reveal more than the caller's role permits via the list endpoint.
+    let scopeClause = '';
+    let scopeParams: unknown[] = [];
+    if (user.role === 'officer') {
+      scopeClause = 'AND i.assigned_officer_id = $1::uuid';
+      scopeParams = [user.officerId];
+    } else if (user.role === 'supervisor' && user.zoneId) {
+      scopeClause = 'AND i.zone_id = $1::uuid';
+      scopeParams = [user.zoneId];
+    }
+
+    const incidents = await prisma.$queryRawUnsafe(
+      `SELECT i.id, i.title, i.priority, i.status, i.zone_id,
         i.sla_response_deadline, i.sla_resolution_deadline,
         c.name_en as category_name, ST_AsGeoJSON(i.location)::json as geometry
       FROM incidents i
       LEFT JOIN categories c ON c.id = i.category_id
       WHERE i.status IN ('open', 'assigned', 'in_progress', 'escalated')
-      AND i.location IS NOT NULL
-    `;
+        AND i.location IS NOT NULL
+        ${scopeClause}`,
+      ...scopeParams,
+    );
     return {
       type: 'FeatureCollection',
       features: (incidents as any[]).map(i => ({
@@ -88,20 +103,25 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
 
     const where: Record<string, any> = {};
 
-    // Role-based scoping
-    if (user.role === 'supervisor' && user.zoneId) {
-      where.zoneId = user.zoneId;
-    } else if (user.role === 'officer') {
-      where.assignedOfficerId = user.officerId;
+    // Apply caller-supplied filters first…
+    if (query.status) {
+      where.status = Array.isArray(query.status) ? { in: query.status } : query.status;
     }
-
-    // Query filters
-    if (query.status) where.status = query.status;
     if (query.zone) where.zoneId = query.zone;
     if (query.priority) where.priority = query.priority;
     if (query.assignedOfficerId) where.assignedOfficerId = query.assignedOfficerId;
     if (query.search) where.title = { contains: query.search, mode: 'insensitive' };
     if (query.categoryId) where.categoryId = query.categoryId;
+
+    // …then apply role scoping LAST so query params can never widen the
+    // caller's view past what their role allows. Officers see only incidents
+    // assigned to them; supervisors see only their zone. Managers,
+    // assistant_managers, operators, and secretaries see everything.
+    if (user.role === 'officer') {
+      where.assignedOfficerId = user.officerId;
+    } else if (user.role === 'supervisor' && user.zoneId) {
+      where.zoneId = user.zoneId;
+    }
 
     const incidents = await prisma.incident.findMany({
       where,
@@ -145,7 +165,13 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
 
     if (!incident) throw new NotFoundError('Incident not found');
 
-    // Supervisor zone scoping
+    // Role-based read guard. Officers can only see incidents assigned to
+    // them; supervisors only their zone. Managers/operators/etc see all.
+    if (user.role === 'officer' && incident.assignedOfficerId !== user.officerId) {
+      // 404 (not 403) so officers can't probe whether an incident exists
+      // by trying random UUIDs.
+      throw new NotFoundError('Incident not found');
+    }
     if (user.role === 'supervisor' && user.zoneId && incident.zoneId !== user.zoneId) {
       throw new ForbiddenError('Access denied to this incident');
     }
@@ -171,6 +197,23 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
     }
     if (!priority) priority = 'medium';
 
+    // If caller didn't pin a zoneId but did supply a GPS point, derive the
+    // zone from the polygon that contains the point. Mobile NewIncidentScreen
+    // sends lat/lng without zoneId — without this, every mobile-created
+    // incident lands with zoneId=null and is invisible to zone-scoped queries.
+    let resolvedZoneId: string | null = body.zoneId ?? null;
+    if (!resolvedZoneId && body.lat != null && body.lng != null) {
+      const rows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id::text FROM zones
+        WHERE ST_Within(
+          ST_SetSRID(ST_MakePoint(${body.lng}, ${body.lat}), 4326),
+          boundary
+        )
+        LIMIT 1
+      `;
+      if (rows.length) resolvedZoneId = rows[0].id;
+    }
+
     // Calculate SLA deadlines
     const sla = await calculateSlaDeadlines(body.categoryId, priority);
 
@@ -181,7 +224,7 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
       categoryId: body.categoryId ?? null,
       priority: priority as any,
       status: 'open' as any,
-      zoneId: body.zoneId ?? null,
+      zoneId: resolvedZoneId,
       reporterType: (body.reporterType as any) ?? 'officer',
       reporterPhone: body.reporterPhone ?? null,
       slaResponseDeadline: sla.slaResponseDeadline,

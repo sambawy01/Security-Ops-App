@@ -7,6 +7,7 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(16),
   PORT: z.coerce.number().default(3000),
   OLLAMA_URL: z.string().url().default('http://localhost:11434'),
+  OLLAMA_API_KEY: z.string().default(''),
   AI_MODEL: z.string().default('qwen2.5:7b'),
   WHATSAPP_TOKEN: z.string().default(''),
   WHATSAPP_PHONE_ID: z.string().default(''),

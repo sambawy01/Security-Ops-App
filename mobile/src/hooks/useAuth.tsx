@@ -8,7 +8,10 @@ import React, {
 import type { ReactNode } from 'react';
 import type { User } from '../types';
 import * as authLib from '../lib/auth';
+import { apiFetch } from '../lib/api';
 import { registerForPushNotifications } from '../lib/notifications';
+
+const HEARTBEAT_INTERVAL_MS = 60_000;
 
 interface AuthContextValue {
   user: User | null;
@@ -30,6 +33,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
   }, []);
+
+  // Send a presence heartbeat every 60s while logged in. Failures are silent —
+  // network drops shouldn't surface to the user; the auth onRequest hook also
+  // updates lastSeenAt on every other authenticated call as a backup signal.
+  useEffect(() => {
+    if (!user) return;
+    const ping = () => {
+      apiFetch('/api/v1/officers/heartbeat', { method: 'POST' }).catch(() => {});
+    };
+    ping();
+    const id = setInterval(ping, HEARTBEAT_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [user]);
 
   const login = useCallback(async (badge: string, pin: string) => {
     const u = await authLib.login(badge, pin);

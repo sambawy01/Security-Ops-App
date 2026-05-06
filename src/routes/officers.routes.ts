@@ -48,6 +48,8 @@ const officersRoutes: FastifyPluginAsync = async (app) => {
         zoneId: true,
         status: true,
         phone: true,
+        deviceId: true,
+        lastSeenAt: true,
         _count: {
           select: {
             assignedIncidents: {
@@ -68,6 +70,45 @@ const officersRoutes: FastifyPluginAsync = async (app) => {
   }, async (request) => {
     const locations = await getAllActiveOfficerLocations();
     return locations;
+  });
+
+  // GET /api/v1/officers/online — Officers seen in the last N minutes (default 5)
+  // Anyone authenticated can read presence; same RBAC as officer list.
+  app.get('/api/v1/officers/online', {
+    config: { allowedRoles: LIST_ROLES },
+  }, async (request) => {
+    const query = request.query as Record<string, string | undefined>;
+    const windowMin = Math.max(1, Math.min(60, Number(query.window) || 5));
+    const since = new Date(Date.now() - windowMin * 60_000);
+    const officers = await prisma.officer.findMany({
+      where: { lastSeenAt: { gte: since } },
+      select: {
+        id: true,
+        nameEn: true,
+        nameAr: true,
+        badgeNumber: true,
+        role: true,
+        zoneId: true,
+        deviceId: true,
+        lastSeenAt: true,
+      },
+      orderBy: { lastSeenAt: 'desc' },
+    });
+    return { data: officers, windowMin };
+  });
+
+  // POST /api/v1/officers/heartbeat — Explicit presence ping (mobile clients).
+  // The auth plugin already touches lastSeenAt on every request, but a dedicated
+  // endpoint lets the mobile pulse presence even when there is no other traffic.
+  app.post('/api/v1/officers/heartbeat', {
+    config: { allowedRoles: LIST_ROLES },
+  }, async (request) => {
+    // Bypass the redis debounce — force a write so a manual ping always lands.
+    await prisma.officer.update({
+      where: { id: request.user.officerId },
+      data: { lastSeenAt: new Date() },
+    });
+    return { ok: true, lastSeenAt: new Date().toISOString() };
   });
 
   // GET /api/v1/officers/:id — Officer detail

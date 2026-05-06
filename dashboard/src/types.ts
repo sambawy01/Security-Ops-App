@@ -25,6 +25,7 @@ export interface Officer {
   zoneId: string | null;
   status: string;
   phone: string;
+  lastSeenAt?: string | null;
 }
 
 export interface Incident {

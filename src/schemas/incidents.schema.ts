@@ -4,8 +4,17 @@ export const incidentParamsSchema = z.object({
   id: z.string().uuid(),
 });
 
+const INCIDENT_STATUSES = ['open', 'assigned', 'in_progress', 'escalated', 'resolved', 'closed', 'cancelled'] as const;
+
+// Accept ?status=open or ?status=open,assigned,in_progress (mobile HomeScreen
+// uses the comma-list form to fetch all "active" incidents in one call).
+const incidentStatusFilter = z.preprocess(
+  (val) => typeof val === 'string' && val.includes(',') ? val.split(',').map((s) => s.trim()) : val,
+  z.union([z.enum(INCIDENT_STATUSES), z.array(z.enum(INCIDENT_STATUSES)).min(1)]),
+).optional();
+
 export const listIncidentsQuerySchema = z.object({
-  status: z.enum(['open', 'assigned', 'in_progress', 'escalated', 'resolved', 'closed', 'cancelled']).optional(),
+  status: incidentStatusFilter,
   zone: z.string().uuid().optional(),
   priority: z.enum(['critical', 'high', 'medium', 'low']).optional(),
   assignedOfficerId: z.string().uuid().optional(),

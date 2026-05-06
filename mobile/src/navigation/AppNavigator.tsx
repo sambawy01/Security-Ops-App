@@ -13,6 +13,7 @@ import { NewIncidentScreen } from '../screens/NewIncidentScreen';
 import { PatrolScreen } from '../screens/PatrolScreen';
 import { ShiftScreen } from '../screens/ShiftScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { BroadcastListener } from '../components/BroadcastListener';
 
 const AuthStack = createNativeStackNavigator();
 const MainTab = createBottomTabNavigator();
@@ -126,5 +127,12 @@ export function AppNavigator() {
     );
   }
 
-  return <MainTabNavigator />;
+  return (
+    <>
+      <MainTabNavigator />
+      {/* Mounted once for the whole authenticated app — pops a modal whenever
+          a new broadcast targeted at this officer arrives. */}
+      <BroadcastListener />
+    </>
+  );
 }

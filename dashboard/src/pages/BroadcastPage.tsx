@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Megaphone, Send, CheckCircle, Users, Shield, UserPlus, Clock, AlertTriangle, Radio } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
-import { apiFetch } from '../lib/api';
+import { useSendBroadcast } from '../hooks/useBroadcasts';
 import { cn } from '../lib/utils';
 
 type Priority = 'emergency' | 'urgent' | 'normal' | 'info';
@@ -40,21 +40,18 @@ export function BroadcastPage() {
   const [message, setMessage] = useState('');
   const [priority, setPriority] = useState<Priority>('normal');
   const [audience, setAudience] = useState<Audience>('all');
-  const [sending, setSending] = useState(false);
+  const sendMutation = useSendBroadcast();
+  const sending = sendMutation.isPending;
   const [sentMessages, setSentMessages] = useState<BroadcastRecord[]>([]);
 
   const handleSend = async () => {
     if (!message.trim()) return;
-    setSending(true);
-
     try {
-      // Store broadcast as a system-level incident update or AI analysis for audit trail
-      await apiFetch('/api/v1/ai/triage', {
-        method: 'POST',
-        body: JSON.stringify({
-          message: `[BROADCAST] [${priority.toUpperCase()}] [To: ${audience}] ${message}`,
-        }),
-      }).catch(() => {});
+      await sendMutation.mutateAsync({
+        message: message.trim(),
+        priority,
+        audience,
+      });
 
       const record: BroadcastRecord = {
         id: Date.now().toString(),
@@ -66,14 +63,14 @@ export function BroadcastPage() {
         sender: user?.nameEn || 'Manager',
         timestamp: new Date(),
       };
-
       setSentMessages(prev => [record, ...prev]);
       setMessage('');
       setPriority('normal');
-    } catch {
-      // Best effort
+    } catch (e) {
+      // surface the failure so the user knows the broadcast didn't land
+      // eslint-disable-next-line no-alert
+      alert((e as Error).message || 'Failed to send broadcast');
     }
-    setSending(false);
   };
 
   return (

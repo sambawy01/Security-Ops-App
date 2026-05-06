@@ -85,6 +85,13 @@ enum SyncConflictStatus {
   rejected
 }
 
+enum BroadcastPriority {
+  emergency
+  urgent
+  normal
+  info
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model Officer {
@@ -102,9 +109,12 @@ model Officer {
   pinHash             String        @map("pin_hash")
   failedLoginAttempts Int           @default(0) @map("failed_login_attempts")
   lockedUntil         DateTime?     @map("locked_until")
+  lastSeenAt          DateTime?     @map("last_seen_at")
   skills              String[]      @default([])
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  @@index([lastSeenAt(sort: Desc)])
 
   zone                Zone?              @relation("ZoneOfficers", fields: [zoneId], references: [id])
   supervisedZone      Zone?              @relation("ZoneSupervisor")
@@ -450,4 +460,33 @@ model SyncQueue {
   conflictStatus   SyncConflictStatus @default(none) @map("conflict_status")
 
   @@map("sync_queue")
+}
+
+model Broadcast {
+  id        String            @id @default(uuid()) @db.Uuid
+  message   String
+  priority  BroadcastPriority @default(normal)
+  /// 'all' | a Role enum value | a Zone uuid (when audienceType = 'zone')
+  audience  String            @default("all")
+  zoneId    String?           @map("zone_id") @db.Uuid
+  senderId  String            @map("sender_id") @db.Uuid
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  acks BroadcastAck[]
+
+  @@index([createdAt(sort: Desc)])
+  @@map("broadcasts")
+}
+
+model BroadcastAck {
+  id          String   @id @default(uuid()) @db.Uuid
+  broadcastId String   @map("broadcast_id") @db.Uuid
+  officerId   String   @map("officer_id") @db.Uuid
+  ackedAt     DateTime @default(now()) @map("acked_at")
+
+  broadcast Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+
+  @@unique([broadcastId, officerId])
+  @@index([officerId, ackedAt(sort: Desc)])
+  @@map("broadcast_acks")
 }

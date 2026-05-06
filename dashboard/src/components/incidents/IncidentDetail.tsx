@@ -58,6 +58,13 @@ interface IncidentDetailData {
   assignedOfficer?: { id: string; nameEn: string; badgeNumber: string } | null;
   zone?: { id: string; nameEn: string } | null;
   category?: { id: string; nameEn: string } | null;
+  media?: Array<{
+    id: string;
+    type: 'photo' | 'voice_note';
+    filePath: string;
+    fileSize: number;
+    createdAt: string;
+  }>;
   updates?: Array<{
     id: string;
     type: string;
@@ -325,6 +332,33 @@ export function IncidentDetail({ incidentId, onClose }: IncidentDetailProps) {
             </span>
           </div>
         </div>
+
+        {/* Photos */}
+        {incident.media && incident.media.filter((m) => m.type === 'photo').length > 0 && (
+          <div className="px-6 py-4 border-b border-slate-100">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+              {isAr ? 'الصور' : 'Photos'}
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {incident.media
+                .filter((m) => m.type === 'photo')
+                .map((m) => {
+                  const src = `${import.meta.env.VITE_API_URL}${m.filePath}`;
+                  return (
+                    <a
+                      key={m.id}
+                      href={src}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100 hover:opacity-90 transition-opacity"
+                    >
+                      <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    </a>
+                  );
+                })}
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="px-6 py-4 border-b border-slate-100">

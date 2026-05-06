@@ -7,6 +7,7 @@ import { ZoneOverlays } from '../components/map/ZoneOverlays';
 import { OfficerMarkers } from '../components/map/OfficerMarkers';
 import { IncidentMarkers } from '../components/map/IncidentMarkers';
 import { CheckpointMarkers } from '../components/map/CheckpointMarkers';
+import { PatrolRouteLayer } from '../components/map/PatrolRouteLayer';
 import { SlaTimer } from '../components/incidents/SlaTimer';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useIncidents } from '../hooks/useIncidents';
@@ -256,9 +257,10 @@ export function DashboardPage() {
         <div className="flex-1 relative">
           <CommandMap>
             <ZoneOverlays />
+            <PatrolRouteLayer />
+            <CheckpointMarkers />
             <OfficerMarkers />
             <IncidentMarkers />
-            <CheckpointMarkers />
           </CommandMap>
 
           {/* Floating mini panels on the map */}

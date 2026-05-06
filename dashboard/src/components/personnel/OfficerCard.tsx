@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown, MapPin, Phone, Shield, Clock, AlertTriangle, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Badge } from '../ui/badge';
+import { PresenceDot } from '../ui/PresenceDot';
 import { apiFetch } from '../../lib/api';
 import type { Officer } from '../../types';
 
@@ -10,27 +11,6 @@ interface OfficerCardProps {
   officer: Officer;
   autoExpand?: boolean;
 }
-
-const statusDot: Record<string, string> = {
-  active: 'bg-green-500',
-  device_offline: 'bg-yellow-500',
-  off_duty: 'bg-slate-400',
-  suspended: 'bg-red-500',
-};
-
-const statusLabelEn: Record<string, string> = {
-  active: 'Active',
-  device_offline: 'Device Offline',
-  off_duty: 'Off Duty',
-  suspended: 'Suspended',
-};
-
-const statusLabelAr: Record<string, string> = {
-  active: 'نشط',
-  device_offline: 'الجهاز غير متصل',
-  off_duty: 'خارج الخدمة',
-  suspended: 'موقوف',
-};
 
 const roleLabelEn: Record<string, string> = {
   officer: 'Officer',
@@ -75,7 +55,6 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
   const [loading, setLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const statusLabel = isAr ? statusLabelAr : statusLabelEn;
   const roleLabel = isAr ? roleLabelAr : roleLabelEn;
 
   // Auto-expand and scroll into view when navigating from map
@@ -88,7 +67,6 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
     }
   }, [autoExpand]);
 
-  const dot = statusDot[officer.status] ?? 'bg-slate-400';
   const count = (officer as any)._count?.assignedIncidents ?? (officer as any)._count?.incidents ?? null;
 
   const handleExpand = async () => {
@@ -157,7 +135,7 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
         onClick={handleExpand}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50/50 transition-colors"
       >
-        <span className={cn('h-2.5 w-2.5 flex-shrink-0 rounded-full', dot)} />
+        <PresenceDot lastSeenAt={officer.lastSeenAt} isAr={isAr} />
         <span className="text-sm font-medium text-slate-900 min-w-0 truncate">{officerDisplayName}</span>
         <span className="text-xs font-mono text-slate-500 flex-shrink-0">{officer.badgeNumber}</span>
         <Badge variant="default" className="flex-shrink-0">{roleLabel[officer.role] ?? officer.role}</Badge>
@@ -201,10 +179,8 @@ export function OfficerCard({ officer, autoExpand }: OfficerCardProps) {
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <Clock className="h-3.5 w-3.5 text-slate-400" />
-                  <span className="text-slate-500">{isAr ? 'الحالة:' : 'Status:'}</span>
-                  <span className={cn('font-medium', officer.status === 'active' ? 'text-green-700' : 'text-slate-600')}>
-                    {statusLabel[officer.status] ?? officer.status}
-                  </span>
+                  <span className="text-slate-500">{isAr ? 'الحضور:' : 'Presence:'}</span>
+                  <PresenceDot lastSeenAt={officer.lastSeenAt} isAr={isAr} showLabel />
                 </div>
               </div>
 

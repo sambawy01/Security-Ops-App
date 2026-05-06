@@ -1,5 +1,6 @@
 import Fastify, { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
+import { ZodError } from 'zod';
 import { AppError } from './lib/errors.js';
 import { prisma } from './lib/prisma.js';
 import { redis } from './lib/redis.js';
@@ -16,16 +17,26 @@ import mediaRoutes from './routes/media.routes.js';
 import syncRoutes from './routes/sync.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import whatsappRoutes from './routes/whatsapp.routes.js';
+import broadcastsRoutes from './routes/broadcasts.routes.js';
 
 export function buildApp() {
-  const app = Fastify({ logger: true });
+  // trustProxy honors X-Forwarded-* from Railway/Fly/Vercel edge so request.ip
+  // and request.protocol reflect the real client, not the platform proxy.
+  const app = Fastify({ logger: true, trustProxy: true });
 
   app.register(cors, { origin: true });
 
-  // Global error handler
+  // Global error handler. Routes parse query/body via zod's `.parse()` inside
+  // handlers — those throw ZodError, which Fastify's `error.validation` field
+  // never sees (it only fires for schemas attached to the route definition).
+  // Without an explicit ZodError branch every bad input returns 500. Catch it
+  // here and shape the same 400 response Fastify-validated routes return.
   app.setErrorHandler((error: FastifyError, request: FastifyRequest, reply: FastifyReply) => {
     if (error instanceof AppError) {
       return reply.status(error.statusCode).send({ error: error.message });
+    }
+    if (error instanceof ZodError) {
+      return reply.status(400).send({ error: 'Validation error', details: error.issues });
     }
     if (error.validation) {
       return reply.status(400).send({ error: 'Validation error', details: error.validation });
@@ -61,6 +72,7 @@ export function buildApp() {
   app.register(syncRoutes);
   app.register(aiRoutes);
   app.register(whatsappRoutes);
+  app.register(broadcastsRoutes);
 
   return app;
 }

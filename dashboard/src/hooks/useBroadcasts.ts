@@ -42,7 +42,12 @@ export function useAckBroadcast() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch<{ ok: true }>(`/api/v1/broadcasts/${id}/ack`, { method: 'POST' }),
+      apiFetch<{ ok: true }>(`/api/v1/broadcasts/${id}/ack`, {
+        method: 'POST',
+        // Fastify's default JSON parser 500s on empty bodies when Content-Type
+        // is application/json. Send `{}` so the ack succeeds regardless.
+        body: JSON.stringify({}),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['broadcasts'] }),
   });
 }

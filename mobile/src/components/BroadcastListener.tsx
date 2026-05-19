@@ -67,7 +67,11 @@ export function BroadcastListener() {
   const onAck = async () => {
     setAcking(true);
     try {
-      await apiFetch(`/api/v1/broadcasts/${current.id}/ack`, { method: 'POST' });
+      await apiFetch(`/api/v1/broadcasts/${current.id}/ack`, {
+        method: 'POST',
+        // Empty body + Content-Type: application/json trips Fastify's parser.
+        body: JSON.stringify({}),
+      });
       setDismissedId(current.id);
     } catch {
       // even on failure, dismiss locally so the officer isn't stuck —

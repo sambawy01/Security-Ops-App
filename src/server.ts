@@ -26,6 +26,20 @@ export function buildApp() {
 
   app.register(cors, { origin: true });
 
+  // Treat empty JSON bodies as `{}` instead of throwing FST_ERR_CTP_EMPTY_JSON_BODY.
+  // Clients (browser fetch / RN fetch) send `Content-Type: application/json` even on
+  // no-body POSTs like /broadcasts/:id/ack; Fastify's default parser 500s on those.
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    const raw = (body as string).trim();
+    if (raw === '') return done(null, {});
+    try {
+      done(null, JSON.parse(raw));
+    } catch (err) {
+      (err as any).statusCode = 400;
+      done(err as Error, undefined);
+    }
+  });
+
   // Global error handler. Routes parse query/body via zod's `.parse()` inside
   // handlers — those throw ZodError, which Fastify's `error.validation` field
   // never sees (it only fires for schemas attached to the route definition).

@@ -5,9 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { MapContext } from './MapContext';
 import { Navigation } from 'lucide-react';
 
-// El Gouna fallback center
-const DEFAULT_CENTER: [number, number] = [33.67128, 27.39747];
-const DEFAULT_ZOOM = 12.5;
+// Centered to fit the 7 ODH zones (Fanadir → Bostan), which span ~7 km W–E
+// and ~9 km N–S including the Bostan staff-housing block to the far south.
+const DEFAULT_CENTER: [number, number] = [33.68500, 27.38000];
+const DEFAULT_ZOOM = 12.2;
 
 export function CommandMap({ children }: { children?: React.ReactNode }) {
   const { t } = useTranslation();

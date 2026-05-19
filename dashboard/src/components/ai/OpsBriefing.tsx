@@ -383,8 +383,8 @@ export function OpsBriefing() {
   aiItems.push({
     severity: 'ai',
     title: _('تحسين التوزيع الذكي', 'Smart Dispatch Optimization'),
-    description: _('بناءً على أنماط البلاغات، نقل ضابطين من جولف جنوب إلى المارينا خلال ساعات المساء (18:00-22:00) قد يقلل وقت الاستجابة بنسبة 35%.',
-      'Relocating 2 officers from South Golf to Marina during evening hours (18:00-22:00) could reduce response times by 35%.'),
+    description: _('بناءً على أنماط البلاغات، نقل ضابطين من شدوان إلى مارينا خلال ساعات المساء (18:00-22:00) قد يقلل وقت الاستجابة بنسبة 35%.',
+      'Relocating 2 officers from Shedwan to Marina during evening hours (18:00-22:00) could reduce response times by 35%.'),
     source: _('تحليل الأنماط', 'AI Pattern Analysis'),
     action: _('تطبيق على الوردية القادمة', 'Apply to next shift'),
     confidence: 'High',
@@ -393,10 +393,10 @@ export function OpsBriefing() {
   aiItems.push({
     severity: 'ai',
     title: _('تعديل مسار الدورية', 'Patrol Route Adjustment'),
-    description: _('نقطة تفتيش 47 في منطقة الكفر تم تخطيها 8 مرات هذا الأسبوع. يوصي الذكاء الاصطناعي بتعديل المسار.',
-      'Checkpoint 47 in Kafr skipped 8 times this week. AI recommends route adjustment.'),
+    description: _('نقطة تفتيش 47 في منطقة كفر الجونة تم تخطيها 8 مرات هذا الأسبوع. يوصي الذكاء الاصطناعي بتعديل المسار.',
+      'Checkpoint 47 in Kafr El Gouna skipped 8 times this week. AI recommends route adjustment.'),
     source: _('تحليل الدوريات', 'Patrol Analytics'),
-    action: _('تحديث مسار الكفر', 'Update Kafr route'),
+    action: _('تحديث مسار كفر الجونة', 'Update Kafr El Gouna route'),
     confidence: 'High',
   });
 
@@ -415,7 +415,7 @@ export function OpsBriefing() {
   aiItems.push({
     severity: 'ai',
     title: _('توظيف تنبؤي', 'Predictive Staffing'),
-    description: _('ليالي الخميس تشهد زيادة 40% في شكاوى الضوضاء في المارينا. يوصى بتعزيز الدوريات بدءاً من الخميس 20:00.',
+    description: _('ليالي الخميس تشهد زيادة 40% في شكاوى الضوضاء في مارينا. يوصى بتعزيز الدوريات بدءاً من الخميس 20:00.',
       'Thursday nights show 40% more noise complaints in Marina. Recommend 2 additional officers starting Thursday 20:00.'),
     source: _('نموذج التنبؤ', 'AI Prediction Model'),
     action: _('جدولة ليوم الخميس', 'Schedule for Thursday'),

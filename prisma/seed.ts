@@ -57,13 +57,17 @@ interface ZoneDef {
   color: string;
 }
 
+// 7 zones aligned with the ODH operational map (تقسيم الجونة): Fanadir, Marina,
+// Kafr El Gouna, Golf, Phases, Shedwan, Bostan. apply-elgouna-geo.ts replaces
+// the rectangular bbox boundaries below with PDF-traced polygons at boot.
 const ZONES: ZoneDef[] = [
-  { id: randomUUID(), nameAr: 'وسط البلد', nameEn: 'Downtown', centerLat: 27.1825, centerLng: 33.8580, color: '#ef4444' },
-  { id: randomUUID(), nameAr: 'المارينا', nameEn: 'Marina', centerLat: 27.1780, centerLng: 33.8650, color: '#3b82f6' },
-  { id: randomUUID(), nameAr: 'الكفر', nameEn: 'Kafr', centerLat: 27.1870, centerLng: 33.8520, color: '#22c55e' },
-  { id: randomUUID(), nameAr: 'جولف غرب', nameEn: 'West Golf', centerLat: 27.1850, centerLng: 33.8450, color: '#f59e0b' },
-  { id: randomUUID(), nameAr: 'جولف جنوب', nameEn: 'South Golf', centerLat: 27.1750, centerLng: 33.8500, color: '#8b5cf6' },
-  { id: randomUUID(), nameAr: 'المنطقة الصناعية', nameEn: 'Industrial', centerLat: 27.1900, centerLng: 33.8400, color: '#64748b' },
+  { id: randomUUID(), nameAr: 'فنادير',     nameEn: 'Fanadir',       centerLat: 27.4080, centerLng: 33.6580, color: '#eab308' },
+  { id: randomUUID(), nameAr: 'مارينا',     nameEn: 'Marina',        centerLat: 27.4020, centerLng: 33.6820, color: '#a855f7' },
+  { id: randomUUID(), nameAr: 'كفر الجونة', nameEn: 'Kafr El Gouna', centerLat: 27.4000, centerLng: 33.6790, color: '#22c55e' },
+  { id: randomUUID(), nameAr: 'الجولف',     nameEn: 'Golf',          centerLat: 27.3895, centerLng: 33.6880, color: '#1e293b' },
+  { id: randomUUID(), nameAr: 'المراحل',    nameEn: 'Phases',        centerLat: 27.3950, centerLng: 33.7050, color: '#38bdf8' },
+  { id: randomUUID(), nameAr: 'شدوان',      nameEn: 'Shedwan',       centerLat: 27.3750, centerLng: 33.6720, color: '#ef4444' },
+  { id: randomUUID(), nameAr: 'البستان',    nameEn: 'Bostan',        centerLat: 27.3510, centerLng: 33.7050, color: '#f97316' },
 ];
 
 /**
@@ -203,7 +207,8 @@ function buildOfficers(): OfficerDef[] {
     { id: randomUUID(), nameAr: 'كريم رضا', nameEn: 'Karim Reda', badgeNumber: 'OFF-007', role: 'officer', rank: 'ضابط', zoneId: ZONES[3].id, skills: ['patrol', 'k9'] },
     { id: randomUUID(), nameAr: 'طارق نبيل', nameEn: 'Tarek Nabil', badgeNumber: 'OFF-008', role: 'officer', rank: 'ضابط', zoneId: ZONES[4].id, skills: ['patrol', 'traffic'] },
     { id: randomUUID(), nameAr: 'حازم عادل', nameEn: 'Hazem Adel', badgeNumber: 'OFF-009', role: 'officer', rank: 'ضابط', zoneId: ZONES[4].id, skills: ['patrol', 'cctv'] },
-    { id: randomUUID(), nameAr: 'سامح فتحي', nameEn: 'Sameh Fathy', badgeNumber: 'OFF-010', role: 'officer', rank: 'ضابط', zoneId: ZONES[5].id, skills: ['patrol', 'industrial-safety'] },
+    { id: randomUUID(), nameAr: 'سامح فتحي', nameEn: 'Sameh Fathy', badgeNumber: 'OFF-010', role: 'officer', rank: 'ضابط', zoneId: ZONES[5].id, skills: ['patrol', 'desert-patrol'] },
+    { id: randomUUID(), nameAr: 'إيهاب فؤاد', nameEn: 'Ehab Fouad', badgeNumber: 'OFF-011', role: 'officer', rank: 'ضابط', zoneId: ZONES[6].id, skills: ['patrol', 'staff-housing'] },
   ];
 }
 

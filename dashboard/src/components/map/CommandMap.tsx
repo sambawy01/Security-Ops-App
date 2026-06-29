@@ -45,9 +45,20 @@ export function CommandMap({ children }: { children?: React.ReactNode }) {
     }), 'top-right');
 
     map.on('load', () => {
-      setMapInstance(map);
+      // Wait for the style to be fully loaded before exposing the map to
+      // children. The 'load' event can fire before the style object is ready
+      // on slow connections, causing `this.style.getLayer is not a function`
+      // crashes in overlay components that call map.getSource/getLayer.
+      const ready = () => {
+        if (map.isStyleLoaded()) {
+          setMapInstance(map);
+        } else {
+          map.once('styledata', ready);
+        }
+      };
+      ready();
 
-      // Get user's actual location, fly there, and relocate personnel around them
+      // Get user's actual location, fly there, and relocate personnel around him
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {

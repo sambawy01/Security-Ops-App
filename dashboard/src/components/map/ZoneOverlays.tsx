@@ -18,12 +18,19 @@ export function ZoneOverlays() {
   useEffect(() => {
     if (!map || !data) return;
 
-    // Clean up old markers
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+    // Guard: wait for style to be loaded before touching sources/layers
+    const apply = () => {
+      if (!map.isStyleLoaded()) {
+        map.once('styledata', apply);
+        return;
+      }
 
-    // Add or update source
-    const source = map.getSource(SOURCE_ID) as any;
+      // Clean up old markers
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current = [];
+
+      // Add or update source
+      const source = map.getSource(SOURCE_ID) as any;
     if (source && typeof source.setData === 'function') {
       source.setData(data);
     } else {
@@ -115,9 +122,14 @@ export function ZoneOverlays() {
       markersRef.current.push(marker);
     }
 
+    };
+
+    apply();
+
     return () => {
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
+      if (!map.isStyleLoaded()) return;
       if (map.getLayer(LABEL_LAYER_ID)) map.removeLayer(LABEL_LAYER_ID);
       if (map.getLayer(LINE_LAYER_ID)) map.removeLayer(LINE_LAYER_ID);
       if (map.getLayer(FILL_LAYER_ID)) map.removeLayer(FILL_LAYER_ID);

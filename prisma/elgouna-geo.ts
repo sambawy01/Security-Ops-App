@@ -1,40 +1,37 @@
 /**
- * Real El Gouna geography — 7 zones per the ODH operational map.
+ * Real El Gouna geography — 9 zones per the proposed security sector division
+ * (مقترح تقسيم القطاعات الأمنية).
  *
- * The seven zones below match the colored divisions on the official ODH/El Gouna
- * security map (تقسيم الجونة): Fanadir, Marina, Kafr El Gouna, Golf, Phases,
- * Shedwan, and Bostan. Boundaries are traced as polygons (not bboxes) so the
- * dashboard map renders the actual irregular shapes officers and managers see.
+ * Zones match the colour-coded divisions on the official ODH/El Gouna security
+ * map: Al Bustan, Al Marahil, Golf, Kafr El Gouna, Marina, Shadwan, Cyan,
+ * Fanadir 1, and Fanadir 2. Boundaries are traced as polygons so the dashboard
+ * map renders the actual irregular shapes officers and managers see.
  *
- * Each zone carries a `previousNameEn` pointer back to its incumbent row in the
- * v1 6-zone seed (Downtown / Marina / Kafr / West Golf / South Golf / Industrial)
- * so the apply script can rename in place without orphaning officer.zoneId,
- * patrol logs, incidents, or shifts. Bostan is net-new (no previous match) and
- * gets INSERTed.
+ * Zone colour mapping (from the PDF legend):
+ *   Al Bustan     — Grey   (#9ca3af)  Western/NW desert perimeter
+ *   Al Marahil    — Purple (#a855f7)  SW residential phases (Phase 3-5)
+ *   Golf          — Yellow (#eab308)  Central-west golf course
+ *   Kafr El Gouna — Green  (#22c55e)  Central downtown
+ *   Marina        — Blue   (#3b82f6)  Central coast (Abu Tig)
+ *   Shadwan       — LtBlue (#38bdf8)  North-central inland (Tuban)
+ *   Cyan          — Black  (#1e293b)  North-central (between Shadwan & Fanadir 2)
+ *   Fanadir 1     — Red    (#ef4444)  South coastal strip
+ *   Fanadir 2     — DkGreen(#16a34a)  North coastal strip
  *
  * El Gouna footprint:
- *   longitude ~33.640 → 33.715 (≈7 km west–east, including south Bostan)
- *   latitude  ~27.340 → 27.420 (≈9 km north–south, including south Bostan)
+ *   longitude ~33.640 → 33.720 (≈7 km west–east)
+ *   latitude  ~27.375 → 27.420 (≈5 km north–south)
  */
 
 export type CheckpointType = 'gate' | 'patrol' | 'fixed';
 
 export interface ZoneGeo {
-  /** Current name. Match against existing zones by this OR previousNameEn. */
   nameEn: string;
   nameAr: string;
   color: string;
-  /**
-   * When this zone is a rename of a previously-seeded zone, set this to the
-   * v1 nameEn. The apply script finds the existing row by either name so the
-   * UPDATE preserves the zone UUID (and every FK that points at it).
-   */
   previousNameEn?: string;
-  /** Closed CCW ring of [lng, lat] vertices. Preferred over bbox if set. */
   polygon?: [number, number][];
-  /** Fallback rectangle [W, S, E, N] — used when no polygon is provided. */
   bbox?: [number, number, number, number];
-  /** patrol route name + the order checkpoints are visited */
   route: { name: string; checkpointOrder: string[]; estimatedMin: number };
   checkpoints: Array<{
     nameEn: string;
@@ -47,114 +44,152 @@ export interface ZoneGeo {
 
 export const EL_GOUNA_ZONES: ZoneGeo[] = [
   // ───────────────────────────────────────────────────────────────────────────
-  // 1. Fanadir (فنادير) — large NW area with the lagoon villas
-  //    Previous: West Golf (renamed + reshaped to the NW footprint)
+  // 1. Al Bustan (البستان) — Western/NW desert perimeter, includes entrance
+  //    Previous: Bostan (renamed + moved from far south to western perimeter)
   // ───────────────────────────────────────────────────────────────────────────
   {
-    nameEn: 'Fanadir',
-    nameAr: 'فنادير',
-    color: '#eab308', // yellow (matches PDF outline)
-    previousNameEn: 'West Golf',
+    nameEn: 'Al Bustan',
+    nameAr: 'البستان',
+    color: '#9ca3af', // grey (matches PDF legend)
+    previousNameEn: 'Bostan',
     polygon: [
-      [33.6420, 27.4180],
-      [33.6680, 27.4205],
-      [33.6770, 27.4090],
-      [33.6790, 27.4000],
-      [33.6720, 27.3950],
-      [33.6620, 27.3920],
-      [33.6500, 27.3940],
-      [33.6420, 27.4050],
-      [33.6420, 27.4180],
+      [33.6400, 27.4200],
+      [33.6680, 27.4200],
+      [33.6680, 27.4080],
+      [33.6500, 27.3920],
+      [33.6400, 27.3980],
+      [33.6400, 27.4200],
     ],
     route: {
-      name: 'Fanadir Patrol Loop',
+      name: 'Al Bustan Perimeter Patrol',
       estimatedMin: 45,
       checkpointOrder: [
-        'Fanadir Main Gate',
-        'North Lagoon Villas',
-        'Lagoon Bridge West',
-        'Fanadir Beach Access',
-        'West Villa Cluster A',
-        'Fanadir Service Gate',
+        'El Gouna Entrance Gate',
+        'Bustan North Checkpoint',
+        'Church Crossing',
+        'Khamsin Watchtower',
+        'Bustan West Gate',
+        'Bustan South Outpost',
       ],
     },
     checkpoints: [
-      { nameEn: 'Fanadir Main Gate',       nameAr: 'بوابة فنادير الرئيسية',    type: 'gate',   lat: 27.4150, lng: 33.6580 },
-      { nameEn: 'North Lagoon Villas',     nameAr: 'فلل اللاجون الشمالية',     type: 'patrol', lat: 27.4170, lng: 33.6520 },
-      { nameEn: 'Lagoon Bridge West',      nameAr: 'جسر اللاجون الغربي',       type: 'patrol', lat: 27.4100, lng: 33.6500 },
-      { nameEn: 'Fanadir Beach Access',    nameAr: 'مدخل شاطئ فنادير',         type: 'gate',   lat: 27.4180, lng: 33.6640 },
-      { nameEn: 'West Villa Cluster A',    nameAr: 'مجمع فلل غرب أ',           type: 'patrol', lat: 27.4060, lng: 33.6560 },
-      { nameEn: 'West Villa Cluster B',    nameAr: 'مجمع فلل غرب ب',           type: 'patrol', lat: 27.4020, lng: 33.6620 },
-      { nameEn: 'Fanadir Service Gate',    nameAr: 'بوابة خدمة فنادير',        type: 'gate',   lat: 27.4040, lng: 33.6480 },
-      { nameEn: 'Fanadir Pump Station',    nameAr: 'محطة ضخ فنادير',           type: 'fixed',  lat: 27.3980, lng: 33.6540 },
-      { nameEn: 'Fanadir Spa',             nameAr: 'سبا فنادير',               type: 'fixed',  lat: 27.4090, lng: 33.6600 },
-      { nameEn: 'Lagoon Boardwalk North',  nameAr: 'ممشى اللاجون الشمالي',     type: 'patrol', lat: 27.4130, lng: 33.6560 },
+      { nameEn: 'El Gouna Entrance Gate',  nameAr: 'بوابة دخول الجونة',          type: 'gate',   lat: 27.4150, lng: 33.6650 },
+      { nameEn: 'Bustan North Checkpoint', nameAr: 'نقطة تفتيش البستان الشمالية', type: 'gate',   lat: 27.4180, lng: 33.6600 },
+      { nameEn: 'Church Crossing',         nameAr: 'تقاطع الكنيسة',              type: 'fixed',  lat: 27.4120, lng: 33.6580 },
+      { nameEn: 'Khamsin Watchtower',      nameAr: 'برج مراقبة الخمسين',         type: 'fixed',  lat: 27.4160, lng: 33.6480 },
+      { nameEn: 'Bustan West Gate',        nameAr: 'بوابة البستان الغربية',       type: 'gate',   lat: 27.4050, lng: 33.6440 },
+      { nameEn: 'Bustan South Outpost',    nameAr: 'موقع البستان الجنوبي',        type: 'patrol', lat: 27.3980, lng: 33.6460 },
+      { nameEn: 'Bustan Desert Trail',     nameAr: 'مسار البستان الصحراوي',       type: 'patrol', lat: 27.4100, lng: 33.6500 },
+      { nameEn: 'Bustan Perimeter Road',   nameAr: 'طريق محيط البستان',          type: 'patrol', lat: 27.4020, lng: 33.6520 },
     ],
   },
   // ───────────────────────────────────────────────────────────────────────────
-  // 2. Marina (مارينا) — Abu Tig basin (small zone north-center)
-  //    Previous: Marina (same nameEn, just reshaped to PDF polygon)
+  // 2. Al Marahil (المراحل) — SW residential phases (Phase 3, 4, 5 Villas)
+  //    Previous: Phases (renamed, same geographic position)
   // ───────────────────────────────────────────────────────────────────────────
   {
-    nameEn: 'Marina',
-    nameAr: 'مارينا',
-    color: '#a855f7', // purple (matches PDF outline)
-    previousNameEn: 'Marina',
+    nameEn: 'Al Marahil',
+    nameAr: 'المراحل',
+    color: '#a855f7', // purple (matches PDF legend)
+    previousNameEn: 'Phases',
     polygon: [
-      [33.6760, 27.4080],
-      [33.6890, 27.4080],
-      [33.6890, 27.3980],
-      [33.6810, 27.3960],
-      [33.6760, 27.3990],
-      [33.6760, 27.4080],
+      [33.6960, 27.4090],
+      [33.7180, 27.4080],
+      [33.7200, 27.3900],
+      [33.7100, 27.3800],
+      [33.6960, 27.3850],
+      [33.6960, 27.3920],
+      [33.6960, 27.4090],
     ],
     route: {
-      name: 'Marina Patrol Loop',
-      estimatedMin: 35,
+      name: 'Al Marahil Patrol Loop',
+      estimatedMin: 50,
       checkpointOrder: [
-        'Marina Main Gate',
-        'Movenpick Resort Lobby',
-        'Yacht Club Entrance',
-        'Marina Boardwalk North',
-        'Marina Boardwalk Mid',
-        'Marina Boardwalk South',
-        'Marina Dock',
-        'Marina Service Gate',
+        'Phase 1 Main Gate',
+        'Phase 2 Villa Cluster',
+        'Phase 3 Villa Cluster',
+        'Phases Service Road',
+        'East Beach Access',
+        'Phase 4 Villa Cluster',
+        'Phases South Gate',
       ],
     },
     checkpoints: [
-      { nameEn: 'Marina Main Gate',         nameAr: 'البوابة الرئيسية للمارينا', type: 'gate',   lat: 27.4005, lng: 33.6810 },
-      { nameEn: 'Yacht Club Entrance',      nameAr: 'مدخل نادي اليخوت',         type: 'gate',   lat: 27.4030, lng: 33.6815 },
-      { nameEn: 'Marina Boardwalk North',   nameAr: 'ممشى المارينا الشمالي',    type: 'patrol', lat: 27.4030, lng: 33.6832 },
-      { nameEn: 'Marina Boardwalk Mid',     nameAr: 'منتصف ممشى المارينا',      type: 'patrol', lat: 27.4015, lng: 33.6832 },
-      { nameEn: 'Marina Boardwalk South',   nameAr: 'ممشى المارينا الجنوبي',    type: 'patrol', lat: 27.4000, lng: 33.6832 },
-      { nameEn: 'Restaurant Strip 1',       nameAr: 'صف المطاعم 1',             type: 'patrol', lat: 27.4012, lng: 33.6842 },
-      { nameEn: 'Restaurant Strip 2',       nameAr: 'صف المطاعم 2',             type: 'patrol', lat: 27.4022, lng: 33.6842 },
-      { nameEn: 'Marina Dock',              nameAr: 'رصيف المارينا',            type: 'fixed',  lat: 27.4020, lng: 33.6852 },
-      { nameEn: 'Movenpick Resort Lobby',   nameAr: 'لوبي فندق موفنبيك',        type: 'fixed',  lat: 27.4042, lng: 33.6802 },
-      { nameEn: 'Marina Pharmacy',          nameAr: 'صيدلية المارينا',          type: 'patrol', lat: 27.4010, lng: 33.6822 },
-      { nameEn: 'Marina Service Gate',      nameAr: 'البوابة الخدمية للمارينا', type: 'gate',   lat: 27.3992, lng: 33.6810 },
-      { nameEn: 'Captains Office',          nameAr: 'مكتب الكابتن',             type: 'fixed',  lat: 27.4022, lng: 33.6848 },
+      { nameEn: 'Phase 1 Main Gate',      nameAr: 'بوابة المرحلة 1 الرئيسية', type: 'gate',   lat: 27.4050, lng: 33.7000 },
+      { nameEn: 'Phase 2 Villa Cluster',  nameAr: 'مجمع فلل المرحلة 2',       type: 'patrol', lat: 27.4020, lng: 33.7050 },
+      { nameEn: 'Phase 3 Villa Cluster',  nameAr: 'مجمع فلل المرحلة 3',       type: 'patrol', lat: 27.3960, lng: 33.7080 },
+      { nameEn: 'Phase 4 Villa Cluster',  nameAr: 'مجمع فلل المرحلة 4',       type: 'patrol', lat: 27.3880, lng: 33.7080 },
+      { nameEn: 'East Beach Access',      nameAr: 'مدخل الشاطئ الشرقي',       type: 'gate',   lat: 27.4040, lng: 33.7120 },
+      { nameEn: 'Phases Service Road',    nameAr: 'طريق خدمة المراحل',        type: 'patrol', lat: 27.3920, lng: 33.7020 },
+      { nameEn: 'Phases South Gate',      nameAr: 'بوابة المراحل الجنوبية',   type: 'gate',   lat: 27.3820, lng: 33.7050 },
+      { nameEn: 'Phase 5 Villas',         nameAr: 'فلل المرحلة 5',            type: 'patrol', lat: 27.3990, lng: 33.7100 },
+      { nameEn: 'Phases Pump Station',    nameAr: 'محطة ضخ المراحل',          type: 'fixed',  lat: 27.3900, lng: 33.7000 },
+      { nameEn: 'Phase 1 Lobby',          nameAr: 'لوبي المرحلة 1',           type: 'fixed',  lat: 27.4030, lng: 33.7010 },
     ],
   },
   // ───────────────────────────────────────────────────────────────────────────
-  // 3. Kafr El Gouna (كفر الجونة) — central downtown (Tamr Henna, Movenpick gate)
-  //    Previous: Downtown (renamed in place — Tamr Henna is in the PDF's Kafr El Gouna zone)
+  // 3. Golf (الجولف) — Central-west golf course (Steigenberger, West Golf)
+  //    Previous: Golf (same nameEn, recoloured to yellow)
+  // ───────────────────────────────────────────────────────────────────────────
+  {
+    nameEn: 'Golf',
+    nameAr: 'الجولف',
+    color: '#eab308', // yellow (matches PDF legend)
+    previousNameEn: 'Golf',
+    polygon: [
+      [33.6680, 27.4080],
+      [33.6800, 27.4080],
+      [33.6800, 27.3920],
+      [33.6720, 27.3800],
+      [33.6600, 27.3850],
+      [33.6580, 27.3950],
+      [33.6600, 27.4040],
+      [33.6680, 27.4080],
+    ],
+    route: {
+      name: 'Golf Course Patrol Loop',
+      estimatedMin: 40,
+      checkpointOrder: [
+        'Steigenberger Main Gate',
+        'Golf Clubhouse',
+        'Pro Shop',
+        'Golf Course North Tee',
+        'Fairway Mid Point',
+        'Golf Course South Tee',
+        'Golf Service Gate',
+      ],
+    },
+    checkpoints: [
+      { nameEn: 'Steigenberger Main Gate',  nameAr: 'بوابة شتايجنبرجر الرئيسية', type: 'gate',   lat: 27.4000, lng: 33.6720 },
+      { nameEn: 'Golf Clubhouse',           nameAr: 'نادي الجولف',               type: 'fixed',  lat: 27.3920, lng: 33.6680 },
+      { nameEn: 'Pro Shop',                 nameAr: 'متجر الجولف',               type: 'fixed',  lat: 27.3915, lng: 33.6690 },
+      { nameEn: 'Golf Course North Tee',    nameAr: 'بداية ملعب الجولف الشمالية', type: 'patrol', lat: 27.4040, lng: 33.6700 },
+      { nameEn: 'Fairway Mid Point',        nameAr: 'منتصف الفيرواي',            type: 'patrol', lat: 27.3895, lng: 33.6720 },
+      { nameEn: 'Golf Course South Tee',    nameAr: 'بداية ملعب الجولف الجنوبية', type: 'patrol', lat: 27.3850, lng: 33.6680 },
+      { nameEn: 'Golf Service Gate',        nameAr: 'بوابة خدمة الجولف',         type: 'gate',   lat: 27.3870, lng: 33.6640 },
+      { nameEn: 'Golf Maintenance Yard',    nameAr: 'فناء صيانة الجولف',         type: 'fixed',  lat: 27.3880, lng: 33.6620 },
+      { nameEn: 'Sheraton Lobby',           nameAr: 'لوبي شيراتون',              type: 'fixed',  lat: 27.3905, lng: 33.6650 },
+      { nameEn: 'West Golf Entrance',       nameAr: 'مدخل الجولف الغربي',        type: 'gate',   lat: 27.3960, lng: 33.6640 },
+    ],
+  },
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. Kafr El Gouna (كفر الجونة) — Central downtown (Tamr Henna, Movenpick)
+  //    Previous: Kafr El Gouna (same nameEn, same colour)
   // ───────────────────────────────────────────────────────────────────────────
   {
     nameEn: 'Kafr El Gouna',
     nameAr: 'كفر الجونة',
-    color: '#22c55e', // green (matches PDF outline)
-    previousNameEn: 'Downtown',
+    color: '#22c55e', // bright green (matches PDF legend)
+    previousNameEn: 'Kafr El Gouna',
     polygon: [
-      [33.6740, 27.4070],
-      [33.6900, 27.4060],
+      [33.6800, 27.4080],
+      [33.6920, 27.4080],
       [33.6920, 27.3960],
       [33.6850, 27.3920],
-      [33.6740, 27.3920],
-      [33.6700, 27.3970],
-      [33.6700, 27.4040],
-      [33.6740, 27.4070],
+      [33.6800, 27.3920],
+      [33.6760, 27.3960],
+      [33.6760, 27.4040],
+      [33.6800, 27.4080],
     ],
     route: {
       name: 'Kafr El Gouna Patrol Loop',
@@ -171,187 +206,212 @@ export const EL_GOUNA_ZONES: ZoneGeo[] = [
       ],
     },
     checkpoints: [
-      { nameEn: 'Tamr Henna North Gate',    nameAr: 'بوابة تمر حنة الشمالية',  type: 'gate',   lat: 27.4035, lng: 33.6785 },
-      { nameEn: 'Tamr Henna Square Center', nameAr: 'وسط ميدان تمر حنة',       type: 'fixed',  lat: 27.4015, lng: 33.6790 },
-      { nameEn: 'Tamr Henna South Gate',    nameAr: 'بوابة تمر حنة الجنوبية',  type: 'gate',   lat: 27.3995, lng: 33.6790 },
-      { nameEn: 'Library Plaza',            nameAr: 'ساحة المكتبة',            type: 'patrol', lat: 27.4022, lng: 33.6770 },
-      { nameEn: 'Restaurant Row East',      nameAr: 'صف المطاعم الشرقي',       type: 'patrol', lat: 27.4015, lng: 33.6810 },
-      { nameEn: 'Bank Plaza',               nameAr: 'ساحة البنك',              type: 'patrol', lat: 27.4028, lng: 33.6798 },
-      { nameEn: 'Mosque Entrance',          nameAr: 'مدخل المسجد',             type: 'fixed',  lat: 27.4010, lng: 33.6785 },
-      { nameEn: 'Bus Terminal',             nameAr: 'محطة الأتوبيس',           type: 'gate',   lat: 27.4045, lng: 33.6762 },
-      { nameEn: 'Downtown HQ Office',       nameAr: 'مكتب الأمن المركزي',      type: 'fixed',  lat: 27.4020, lng: 33.6790 },
-      { nameEn: 'Kafr Souq Center',         nameAr: 'وسط سوق الكفر',           type: 'patrol', lat: 27.3970, lng: 33.6810 },
-      { nameEn: 'Three Corners Lobby',      nameAr: 'لوبي ثري كورنرز',         type: 'fixed',  lat: 27.3960, lng: 33.6830 },
-      { nameEn: 'Kafr Spa Entrance',        nameAr: 'مدخل سبا الكفر',          type: 'fixed',  lat: 27.3975, lng: 33.6825 },
-      { nameEn: 'School Gate',              nameAr: 'بوابة المدرسة',           type: 'gate',   lat: 27.3998, lng: 33.6810 },
+      { nameEn: 'Tamr Henna North Gate',    nameAr: 'بوابة تمر حنة الشمالية',  type: 'gate',   lat: 27.4060, lng: 33.6800 },
+      { nameEn: 'Tamr Henna Square Center', nameAr: 'وسط ميدان تمر حنة',       type: 'fixed',  lat: 27.4020, lng: 33.6810 },
+      { nameEn: 'Tamr Henna South Gate',    nameAr: 'بوابة تمر حنة الجنوبية',  type: 'gate',   lat: 27.3980, lng: 33.6810 },
+      { nameEn: 'Library Plaza',            nameAr: 'ساحة المكتبة',            type: 'patrol', lat: 27.4030, lng: 33.6790 },
+      { nameEn: 'Restaurant Row East',      nameAr: 'صف المطاعم الشرقي',      type: 'patrol', lat: 27.4015, lng: 33.6840 },
+      { nameEn: 'Bank Plaza',               nameAr: 'ساحة البنك',             type: 'patrol', lat: 27.4040, lng: 33.6820 },
+      { nameEn: 'Mosque Entrance',          nameAr: 'مدخل المسجد',           type: 'fixed',  lat: 27.4000, lng: 33.6790 },
+      { nameEn: 'Bus Terminal',             nameAr: 'محطة الأتوبيس',          type: 'gate',   lat: 27.4050, lng: 33.6770 },
+      { nameEn: 'Downtown HQ Office',       nameAr: 'مكتب الأمن المركزي',     type: 'fixed',  lat: 27.4020, lng: 33.6810 },
+      { nameEn: 'Kafr Souq Center',         nameAr: 'وسط سوق الكفر',          type: 'patrol', lat: 27.3970, lng: 33.6840 },
+      { nameEn: 'Three Corners Lobby',      nameAr: 'لوبي ثري كورنرز',        type: 'fixed',  lat: 27.3960, lng: 33.6850 },
+      { nameEn: 'School Gate',              nameAr: 'بوابة المدرسة',          type: 'gate',   lat: 27.3990, lng: 33.6820 },
     ],
   },
   // ───────────────────────────────────────────────────────────────────────────
-  // 4. Golf (الجولف) — central golf course area
-  //    Previous: Kafr (renamed + reshaped to the central golf footprint)
+  // 5. Shadwan (شدوان) — North-central inland (Tuban lagoon area)
+  //    Previous: Shedwan (renamed + moved from south interior to north-central)
   // ───────────────────────────────────────────────────────────────────────────
   {
-    nameEn: 'Golf',
-    nameAr: 'الجولف',
-    color: '#1e293b', // dark navy (matches PDF outline)
-    previousNameEn: 'Kafr',
-    polygon: [
-      [33.6800, 27.3960],
-      [33.6960, 27.3970],
-      [33.6970, 27.3870],
-      [33.6900, 27.3800],
-      [33.6810, 27.3820],
-      [33.6800, 27.3870],
-      [33.6800, 27.3960],
-    ],
-    route: {
-      name: 'Golf Course Patrol Loop',
-      estimatedMin: 40,
-      checkpointOrder: [
-        'Steigenberger Main Gate',
-        'Golf Clubhouse',
-        'Pro Shop',
-        'Golf Course North Tee',
-        'Fairway Mid Point',
-        'Golf Course South Tee',
-        'Golf Service Gate',
-      ],
-    },
-    checkpoints: [
-      { nameEn: 'Steigenberger Main Gate',  nameAr: 'بوابة شتايجنبرجر الرئيسية', type: 'gate',   lat: 27.3940, lng: 33.6830 },
-      { nameEn: 'Golf Clubhouse',           nameAr: 'نادي الجولف',                type: 'fixed',  lat: 27.3920, lng: 33.6870 },
-      { nameEn: 'Pro Shop',                 nameAr: 'متجر الجولف',                type: 'fixed',  lat: 27.3915, lng: 33.6878 },
-      { nameEn: 'Golf Course North Tee',    nameAr: 'بداية ملعب الجولف الشمالية', type: 'patrol', lat: 27.3940, lng: 33.6900 },
-      { nameEn: 'Fairway Mid Point',        nameAr: 'منتصف الفيرواي',             type: 'patrol', lat: 27.3895, lng: 33.6900 },
-      { nameEn: 'Golf Course South Tee',    nameAr: 'بداية ملعب الجولف الجنوبية', type: 'patrol', lat: 27.3855, lng: 33.6890 },
-      { nameEn: 'Golf Service Gate',        nameAr: 'بوابة خدمة الجولف',          type: 'gate',   lat: 27.3870, lng: 33.6840 },
-      { nameEn: 'Golf Maintenance Yard',    nameAr: 'فناء صيانة الجولف',          type: 'fixed',  lat: 27.3880, lng: 33.6820 },
-      { nameEn: 'Sheraton Lobby',           nameAr: 'لوبي شيراتون',               type: 'fixed',  lat: 27.3905, lng: 33.6850 },
-      { nameEn: 'Golf East Bridge',         nameAr: 'جسر الجولف الشرقي',          type: 'patrol', lat: 27.3895, lng: 33.6940 },
-    ],
-  },
-  // ───────────────────────────────────────────────────────────────────────────
-  // 5. Phases / El Marahel (المراحل) — east residential phases
-  //    Previous: Industrial (renamed + reshaped to the east residential footprint)
-  // ───────────────────────────────────────────────────────────────────────────
-  {
-    nameEn: 'Phases',
-    nameAr: 'المراحل',
-    color: '#38bdf8', // light blue (matches PDF outline)
-    previousNameEn: 'Industrial',
-    polygon: [
-      [33.6960, 27.4090],
-      [33.7150, 27.4060],
-      [33.7180, 27.3920],
-      [33.7100, 27.3800],
-      [33.6990, 27.3800],
-      [33.6960, 27.3920],
-      [33.6960, 27.4090],
-    ],
-    route: {
-      name: 'Phases Patrol Loop',
-      estimatedMin: 50,
-      checkpointOrder: [
-        'Phase 1 Main Gate',
-        'Phase 2 Villa Cluster',
-        'Phase 3 Villa Cluster',
-        'Phases Service Road',
-        'East Beach Access',
-        'Phase 4 Villa Cluster',
-        'Phases South Gate',
-      ],
-    },
-    checkpoints: [
-      { nameEn: 'Phase 1 Main Gate',        nameAr: 'بوابة المرحلة 1 الرئيسية', type: 'gate',   lat: 27.4050, lng: 33.7000 },
-      { nameEn: 'Phase 2 Villa Cluster',    nameAr: 'مجمع فلل المرحلة 2',       type: 'patrol', lat: 27.4020, lng: 33.7050 },
-      { nameEn: 'Phase 3 Villa Cluster',    nameAr: 'مجمع فلل المرحلة 3',       type: 'patrol', lat: 27.3960, lng: 33.7080 },
-      { nameEn: 'Phase 4 Villa Cluster',    nameAr: 'مجمع فلل المرحلة 4',       type: 'patrol', lat: 27.3880, lng: 33.7080 },
-      { nameEn: 'East Beach Access',        nameAr: 'مدخل الشاطئ الشرقي',       type: 'gate',   lat: 27.4040, lng: 33.7120 },
-      { nameEn: 'Phases Service Road',      nameAr: 'طريق خدمة المراحل',        type: 'patrol', lat: 27.3920, lng: 33.7020 },
-      { nameEn: 'Phases South Gate',        nameAr: 'بوابة المراحل الجنوبية',   type: 'gate',   lat: 27.3820, lng: 33.7050 },
-      { nameEn: 'Phases Spa',               nameAr: 'سبا المراحل',              type: 'fixed',  lat: 27.3990, lng: 33.7090 },
-      { nameEn: 'Phase 1 Lobby',            nameAr: 'لوبي المرحلة 1',           type: 'fixed',  lat: 27.4030, lng: 33.7010 },
-      { nameEn: 'Phases Pump Station',      nameAr: 'محطة ضخ المراحل',          type: 'fixed',  lat: 27.3900, lng: 33.7000 },
-    ],
-  },
-  // ───────────────────────────────────────────────────────────────────────────
-  // 6. Shedwan (شدوان) — south interior / desert-side patrol perimeter
-  //    Previous: South Golf (renamed + reshaped to the south interior)
-  // ───────────────────────────────────────────────────────────────────────────
-  {
-    nameEn: 'Shedwan',
+    nameEn: 'Shadwan',
     nameAr: 'شدوان',
-    color: '#ef4444', // red (matches PDF outline)
-    previousNameEn: 'South Golf',
+    color: '#38bdf8', // light blue (matches PDF legend)
+    previousNameEn: 'Shedwan',
     polygon: [
-      [33.6620, 27.3920],
-      [33.6840, 27.3920],
-      [33.6850, 27.3700],
-      [33.6720, 27.3580],
-      [33.6580, 27.3650],
-      [33.6620, 27.3920],
+      [33.6680, 27.4200],
+      [33.6800, 27.4180],
+      [33.6800, 27.4080],
+      [33.6680, 27.4080],
+      [33.6680, 27.4200],
     ],
     route: {
-      name: 'Shedwan Desert Perimeter',
-      estimatedMin: 60,
+      name: 'Shadwan Tuban Patrol Loop',
+      estimatedMin: 35,
       checkpointOrder: [
-        'Shedwan North Checkpoint',
-        'Desert Watchtower West',
-        'Shedwan Service Road',
-        'Desert Watchtower South',
-        'Shedwan Perimeter East',
-        'Shedwan South Outpost',
+        'Tuban Lagoon North',
+        'Shadwan West Gate',
+        'Tuban Bridge',
+        'Shadwan Center',
+        'Shadwan East Gate',
+        'Waterside Condos',
       ],
     },
     checkpoints: [
-      { nameEn: 'Shedwan North Checkpoint', nameAr: 'نقطة تفتيش شدوان الشمالية', type: 'gate',   lat: 27.3900, lng: 33.6720 },
-      { nameEn: 'Desert Watchtower West',   nameAr: 'برج مراقبة الصحراء الغربي', type: 'fixed',  lat: 27.3800, lng: 33.6640 },
-      { nameEn: 'Desert Watchtower South',  nameAr: 'برج مراقبة الصحراء الجنوبي', type: 'fixed',  lat: 27.3680, lng: 33.6700 },
-      { nameEn: 'Shedwan Service Road',     nameAr: 'طريق خدمة شدوان',           type: 'patrol', lat: 27.3780, lng: 33.6720 },
-      { nameEn: 'Shedwan Perimeter East',   nameAr: 'محيط شدوان الشرقي',         type: 'patrol', lat: 27.3750, lng: 33.6810 },
-      { nameEn: 'Shedwan South Outpost',    nameAr: 'موقع شدوان الجنوبي',        type: 'gate',   lat: 27.3620, lng: 33.6720 },
-      { nameEn: 'Sabina Lobby',             nameAr: 'لوبي سابينا',               type: 'fixed',  lat: 27.3845, lng: 33.6790 },
-      { nameEn: 'Sabina Pool',              nameAr: 'مسبح سابينا',               type: 'fixed',  lat: 27.3848, lng: 33.6800 },
-      { nameEn: 'Shedwan Pump Station',     nameAr: 'محطة ضخ شدوان',             type: 'fixed',  lat: 27.3720, lng: 33.6680 },
-      { nameEn: 'Shedwan West Trail',       nameAr: 'مسار شدوان الغربي',         type: 'patrol', lat: 27.3700, lng: 33.6620 },
+      { nameEn: 'Tuban Lagoon North',  nameAr: 'لاجون طبان الشمالي',       type: 'patrol', lat: 27.4160, lng: 33.6720 },
+      { nameEn: 'Shadwan West Gate',   nameAr: 'بوابة شدوان الغربية',      type: 'gate',   lat: 27.4140, lng: 33.6700 },
+      { nameEn: 'Tuban Bridge',        nameAr: 'جسر طبان',                type: 'fixed',  lat: 27.4120, lng: 33.6740 },
+      { nameEn: 'Shadwan Center',      nameAr: 'مركز شدوان',              type: 'fixed',  lat: 27.4130, lng: 33.6760 },
+      { nameEn: 'Shadwan East Gate',   nameAr: 'بوابة شدوان الشرقية',      type: 'gate',   lat: 27.4120, lng: 33.6790 },
+      { nameEn: 'Waterside Condos',    nameAr: 'ووترسايد كوندوز',          type: 'patrol', lat: 27.4150, lng: 33.6770 },
+      { nameEn: 'Shadwan South Patrol',nameAr: 'دورية شدوان الجنوبية',      type: 'patrol', lat: 27.4100, lng: 33.6750 },
+      { nameEn: 'Tuban Lagoon South',  nameAr: 'لاجون طبان الجنوبي',       type: 'patrol', lat: 27.4100, lng: 33.6720 },
     ],
   },
   // ───────────────────────────────────────────────────────────────────────────
-  // 7. Bostan (البستان) — far south staff housing community
+  // 6. Cyan (سيان) — North-central, between Shadwan and Fanadir 2
   //    NEW zone — inserted on first apply (no previousNameEn)
   // ───────────────────────────────────────────────────────────────────────────
   {
-    nameEn: 'Bostan',
-    nameAr: 'البستان',
-    color: '#f97316', // orange (matches PDF outline)
+    nameEn: 'Cyan',
+    nameAr: 'سيان',
+    color: '#1e293b', // black/dark (matches PDF legend)
     polygon: [
-      [33.6940, 27.3620],
-      [33.7160, 27.3610],
-      [33.7170, 27.3400],
-      [33.6960, 27.3400],
-      [33.6940, 27.3620],
+      [33.6800, 27.4180],
+      [33.6920, 27.4150],
+      [33.6920, 27.4080],
+      [33.6800, 27.4080],
+      [33.6800, 27.4180],
     ],
     route: {
-      name: 'Bostan Patrol Loop',
+      name: 'Cyan Sector Patrol',
       estimatedMin: 30,
       checkpointOrder: [
-        'Bostan Main Gate',
-        'Staff Housing Block A',
-        'Staff Housing Block B',
-        'Bostan Mosque',
-        'Bostan School',
-        'Bostan Service Gate',
+        'The Nines Gate',
+        'Cyan North Patrol',
+        'Cyan Center',
+        'Cyan South Gate',
+        'Cyan East Watch',
       ],
     },
     checkpoints: [
-      { nameEn: 'Bostan Main Gate',         nameAr: 'بوابة البستان الرئيسية',   type: 'gate',   lat: 27.3590, lng: 33.7020 },
-      { nameEn: 'Staff Housing Block A',    nameAr: 'مبنى سكن العاملين أ',      type: 'patrol', lat: 27.3540, lng: 33.7050 },
-      { nameEn: 'Staff Housing Block B',    nameAr: 'مبنى سكن العاملين ب',      type: 'patrol', lat: 27.3500, lng: 33.7080 },
-      { nameEn: 'Bostan Mosque',            nameAr: 'مسجد البستان',             type: 'fixed',  lat: 27.3520, lng: 33.7030 },
-      { nameEn: 'Bostan School',            nameAr: 'مدرسة البستان',            type: 'fixed',  lat: 27.3480, lng: 33.7060 },
-      { nameEn: 'Bostan Service Gate',      nameAr: 'بوابة خدمة البستان',       type: 'gate',   lat: 27.3460, lng: 33.7020 },
-      { nameEn: 'Bostan Health Clinic',     nameAr: 'عيادة البستان',            type: 'fixed',  lat: 27.3510, lng: 33.7068 },
-      { nameEn: 'Bostan Market',            nameAr: 'سوق البستان',              type: 'patrol', lat: 27.3530, lng: 33.7045 },
+      { nameEn: 'The Nines Gate',     nameAr: 'بوابة ذا ناينز',         type: 'gate',   lat: 27.4140, lng: 33.6840 },
+      { nameEn: 'Cyan North Patrol',  nameAr: 'دورية سيان الشمالية',     type: 'patrol', lat: 27.4140, lng: 33.6810 },
+      { nameEn: 'Cyan Center',       nameAr: 'مركز سيان',              type: 'fixed',  lat: 27.4120, lng: 33.6850 },
+      { nameEn: 'Cyan South Gate',   nameAr: 'بوابة سيان الجنوبية',     type: 'gate',   lat: 27.4100, lng: 33.6830 },
+      { nameEn: 'Cyan East Watch',   nameAr: 'مرقب سيان الشرقي',        type: 'fixed',  lat: 27.4120, lng: 33.6900 },
+      { nameEn: 'Cyan West Patrol',  nameAr: 'دورية سيان الغربية',      type: 'patrol', lat: 27.4110, lng: 33.6810 },
+    ],
+  },
+  // ───────────────────────────────────────────────────────────────────────────
+  // 7. Marina (مارينا) — Central coast (Abu Tig Marina, New Marina)
+  //    Previous: Marina (same nameEn, recoloured to blue)
+  // ───────────────────────────────────────────────────────────────────────────
+  {
+    nameEn: 'Marina',
+    nameAr: 'مارينا',
+    color: '#3b82f6', // blue (matches PDF legend)
+    previousNameEn: 'Marina',
+    polygon: [
+      [33.6920, 27.4080],
+      [33.7050, 27.4060],
+      [33.7020, 27.3960],
+      [33.6920, 27.3960],
+      [33.6920, 27.4080],
+    ],
+    route: {
+      name: 'Marina Patrol Loop',
+      estimatedMin: 35,
+      checkpointOrder: [
+        'Marina Main Gate',
+        'Movenpick Resort Lobby',
+        'Yacht Club Entrance',
+        'Marina Boardwalk North',
+        'Marina Boardwalk South',
+        'Marina Dock',
+        'Marina Service Gate',
+      ],
+    },
+    checkpoints: [
+      { nameEn: 'Marina Main Gate',        nameAr: 'البوابة الرئيسية للمارينا', type: 'gate',   lat: 27.4040, lng: 33.6950 },
+      { nameEn: 'Yacht Club Entrance',     nameAr: 'مدخل نادي اليخوت',         type: 'gate',   lat: 27.4050, lng: 33.6980 },
+      { nameEn: 'Marina Boardwalk North',  nameAr: 'ممشى المارينا الشمالي',    type: 'patrol', lat: 27.4040, lng: 33.7000 },
+      { nameEn: 'Marina Boardwalk South',  nameAr: 'ممشى المارينا الجنوبي',    type: 'patrol', lat: 27.4000, lng: 33.7000 },
+      { nameEn: 'Marina Dock',            nameAr: 'رصيف المارينا',           type: 'fixed',  lat: 27.4020, lng: 33.7020 },
+      { nameEn: 'Abu Tig Marina Entrance', nameAr: 'مدخل مارينا أبو تيج',      type: 'gate',   lat: 27.4030, lng: 33.6960 },
+      { nameEn: 'New Marina Gate',         nameAr: 'بوابة المارينا الجديدة',    type: 'gate',   lat: 27.4010, lng: 33.6980 },
+      { nameEn: 'Marina Service Gate',    nameAr: 'البوابة الخدمية للمارينا',  type: 'gate',   lat: 27.3990, lng: 33.6950 },
+      { nameEn: 'Marina Commercial Strip',nameAr: 'المنطقة التجارية بالمارينا', type: 'patrol', lat: 27.4020, lng: 33.6990 },
+      { nameEn: 'Sheraton Miramar Lobby', nameAr: 'لوبي شيراتون ميرامار',      type: 'fixed',  lat: 27.4040, lng: 33.6970 },
+    ],
+  },
+  // ───────────────────────────────────────────────────────────────────────────
+  // 8. Fanadir 1 (فنادير 1) — South coastal strip (Mangroovy → Maison Bleue)
+  //    NEW zone — inserted on first apply (no previousNameEn)
+  // ───────────────────────────────────────────────────────────────────────────
+  {
+    nameEn: 'Fanadir 1',
+    nameAr: 'فنادير 1',
+    color: '#ef4444', // red (matches PDF legend)
+    polygon: [
+      [33.7050, 27.4060],
+      [33.7180, 27.4040],
+      [33.7150, 27.3880],
+      [33.7020, 27.3880],
+      [33.7020, 27.3960],
+      [33.7050, 27.4060],
+    ],
+    route: {
+      name: 'Fanadir 1 Coastal Patrol',
+      estimatedMin: 40,
+      checkpointOrder: [
+        'Mangroovy Beach Access',
+        'Fanadir Seafront Gate',
+        'Fanadir 1 Beach North',
+        'Maison Bleue Entrance',
+        'Fanadir 1 South Gate',
+        'Casa Cook Access',
+      ],
+    },
+    checkpoints: [
+      { nameEn: 'Mangroovy Beach Access',  nameAr: 'مدخل شاطئ مانجروفي',      type: 'gate',   lat: 27.4000, lng: 33.7100 },
+      { nameEn: 'Fanadir Seafront Gate',   nameAr: 'بوابة فنادير سيفرونت',    type: 'gate',   lat: 27.3980, lng: 33.7120 },
+      { nameEn: 'Fanadir 1 Beach North',   nameAr: 'شاطئ فنادير 1 الشمالي',  type: 'patrol', lat: 27.4020, lng: 33.7130 },
+      { nameEn: 'Maison Bleue Entrance',   nameAr: 'مدخل ميزون بلو',          type: 'fixed',  lat: 27.3950, lng: 33.7120 },
+      { nameEn: 'Fanadir 1 South Gate',    nameAr: 'بوابة فنادير 1 الجنوبية', type: 'gate',   lat: 27.3920, lng: 33.7100 },
+      { nameEn: 'Casa Cook Access',        nameAr: 'مدخل كازا كوك',           type: 'fixed',  lat: 27.3960, lng: 33.7140 },
+      { nameEn: 'Fanadir 1 Lagoon Patrol', nameAr: 'دورية لاجون فنادير 1',    type: 'patrol', lat: 27.3990, lng: 33.7080 },
+      { nameEn: 'Fanadir Bay Entrance',   nameAr: 'مدخل خليج فنادير',         type: 'gate',   lat: 27.4030, lng: 33.7120 },
+    ],
+  },
+  // ───────────────────────────────────────────────────────────────────────────
+  // 9. Fanadir 2 (فنادير 2) — North coastal strip (North Bay, Ancient Sands)
+  //    Previous: Fanadir (renamed + reshaped to the northernmost coastal area)
+  // ───────────────────────────────────────────────────────────────────────────
+  {
+    nameEn: 'Fanadir 2',
+    nameAr: 'فنادير 2',
+    color: '#16a34a', // dark green (matches PDF legend)
+    previousNameEn: 'Fanadir',
+    polygon: [
+      [33.6920, 27.4180],
+      [33.7050, 27.4150],
+      [33.7050, 27.4060],
+      [33.6920, 27.4080],
+      [33.6920, 27.4180],
+    ],
+    route: {
+      name: 'Fanadir 2 Coastal Patrol',
+      estimatedMin: 40,
+      checkpointOrder: [
+        'North Bay Gate',
+        'Ancient Sands Entrance',
+        'Fanadir 2 Lagoon North',
+        'Fanadir 2 Beach Access',
+        'The Nines North Gate',
+        'Fanadir 2 West Gate',
+      ],
+    },
+    checkpoints: [
+      { nameEn: 'North Bay Gate',          nameAr: 'بوابة نورث باي',          type: 'gate',   lat: 27.4140, lng: 33.6980 },
+      { nameEn: 'Ancient Sands Entrance',  nameAr: 'مدخل أنشنت ساندز',         type: 'gate',   lat: 27.4130, lng: 33.6950 },
+      { nameEn: 'Fanadir 2 Lagoon North',   nameAr: 'لاجون فنادير 2 الشمالي',  type: 'patrol', lat: 27.4120, lng: 33.7000 },
+      { nameEn: 'Fanadir 2 Beach Access',   nameAr: 'مدخل شاطئ فنادير 2',      type: 'gate',   lat: 27.4100, lng: 33.7020 },
+      { nameEn: 'The Nines North Gate',     nameAr: 'بوابة ذا ناينز الشمالية',  type: 'gate',   lat: 27.4140, lng: 33.6930 },
+      { nameEn: 'Fanadir 2 West Gate',      nameAr: 'بوابة فنادير 2 الغربية',  type: 'gate',   lat: 27.4120, lng: 33.6930 },
+      { nameEn: 'Ancient Sands Golf',       nameAr: 'أنشنت ساندز جولف',        type: 'fixed',  lat: 27.4130, lng: 33.6990 },
+      { nameEn: 'Fanadir 2 Coastal Patrol', nameAr: 'دورية فنادير 2 الساحلية', type: 'patrol', lat: 27.4110, lng: 33.7000 },
     ],
   },
 ];

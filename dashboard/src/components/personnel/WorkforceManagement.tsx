@@ -57,6 +57,23 @@ const EMPTY_FORM: ShiftFormState = {
   isOvertime: false,
 };
 
+/** Generate a default shift form with sensible defaults: today 08:00 → 16:00 */
+function defaultShiftForm(): ShiftFormState {
+  const now = new Date();
+  // Default: today at 08:00 → 16:00 (a standard day shift)
+  const start = new Date(now);
+  start.setHours(8, 0, 0, 0);
+  const end = new Date(now);
+  end.setHours(16, 0, 0, 0);
+  return {
+    officerId: '',
+    zoneId: '',
+    scheduledStart: toLocalDateTimeInput(start),
+    scheduledEnd: toLocalDateTimeInput(end),
+    isOvertime: false,
+  };
+}
+
 export function WorkforceManagement() {
   const { t, i18n } = useTranslation();
   const isAr = i18n.language === 'ar';
@@ -144,7 +161,7 @@ export function WorkforceManagement() {
   // Dialog handlers
   const openCreate = () => {
     setEditingShift(null);
-    setForm(EMPTY_FORM);
+    setForm(defaultShiftForm());
     setFormError('');
     setDialogOpen(true);
   };
@@ -406,6 +423,7 @@ export function WorkforceManagement() {
                 options={officerOptions}
                 value={form.officerId}
                 onChange={(e) => setForm({ ...form, officerId: e.target.value })}
+                placeholder={isAr ? 'اختر ضابطاً' : 'Select an officer'}
               />
             </div>
 
@@ -416,6 +434,7 @@ export function WorkforceManagement() {
                 options={zoneOptions.filter((z) => z.value !== '')}
                 value={form.zoneId}
                 onChange={(e) => setForm({ ...form, zoneId: e.target.value })}
+                placeholder={isAr ? 'اختر منطقة' : 'Select a zone'}
               />
             </div>
 

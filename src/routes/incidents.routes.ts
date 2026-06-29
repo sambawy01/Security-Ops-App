@@ -406,6 +406,15 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
     const incident = await prisma.incident.findUnique({ where: { id } });
     if (!incident) throw new NotFoundError('Incident not found');
 
+    // Role-based scoping: officers can only update incidents assigned to
+    // them; supervisors only their zone.
+    if (user.role === 'officer' && incident.assignedOfficerId !== user.officerId) {
+      throw new NotFoundError('Incident not found');
+    }
+    if (user.role === 'supervisor' && user.zoneId && incident.zoneId !== user.zoneId) {
+      throw new ForbiddenError('Access denied to this incident');
+    }
+
     const updateData: Record<string, any> = {};
 
     // Status transition validation
@@ -496,6 +505,11 @@ const incidentsRoutes: FastifyPluginAsync = async (app) => {
 
     const incident = await prisma.incident.findUnique({ where: { id } });
     if (!incident) throw new NotFoundError('Incident not found');
+
+    // Supervisor zone scoping — supervisors can only cancel incidents in their zone.
+    if (user.role === 'supervisor' && user.zoneId && incident.zoneId !== user.zoneId) {
+      throw new ForbiddenError('Access denied to this incident');
+    }
 
     // Cannot cancel already closed or cancelled incidents
     if (incident.status === 'closed' || incident.status === 'cancelled') {

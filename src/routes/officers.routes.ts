@@ -232,7 +232,9 @@ const officersRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/v1/officers/:id/location — GPS location update
-  app.post('/api/v1/officers/:id/location', async (request) => {
+  app.post('/api/v1/officers/:id/location', {
+    config: { allowedRoles: ['officer', 'supervisor', 'manager', 'assistant_manager'] },
+  }, async (request) => {
     const { id } = officerParamsSchema.parse((request as any).params);
     const user = request.user;
 
@@ -303,20 +305,32 @@ const officersRoutes: FastifyPluginAsync = async (app) => {
       }
     }
 
-    let whereClause = `WHERE officer_id = '${id}'::uuid`;
+    // Use $queryRawUnsafe with parameterized values ($1, $2, ...) to prevent
+    // SQL injection. All values are Zod-validated upstream (UUID, datetime,
+    // bounded int) and passed as separate parameters, never interpolated.
+    const params: unknown[] = [id];
+    let paramIdx = 2; // $1 is officer_id
+    let whereClause = 'WHERE officer_id = $1::uuid';
     if (query.from) {
-      whereClause += ` AND timestamp >= '${query.from}'::timestamptz`;
+      whereClause += ` AND timestamp >= $${paramIdx}::timestamptz`;
+      params.push(query.from);
+      paramIdx++;
     }
     if (query.to) {
-      whereClause += ` AND timestamp <= '${query.to}'::timestamptz`;
+      whereClause += ` AND timestamp <= $${paramIdx}::timestamptz`;
+      params.push(query.to);
+      paramIdx++;
     }
+    params.push(query.limit);
+    const limitPlaceholder = `$${paramIdx}`;
 
     const locations = await prisma.$queryRawUnsafe<
       { lat: number; lng: number; timestamp: Date; accuracy_meters: number | null }[]
     >(
       `SELECT ST_Y(location) as lat, ST_X(location) as lng, timestamp, accuracy_meters
        FROM officer_locations ${whereClause}
-       ORDER BY timestamp DESC LIMIT ${query.limit}`,
+       ORDER BY timestamp DESC LIMIT ${limitPlaceholder}`,
+      ...params,
     );
 
     return {

@@ -12,6 +12,8 @@ const envSchema = z.object({
   WHATSAPP_TOKEN: z.string().default(''),
   WHATSAPP_PHONE_ID: z.string().default(''),
   WHATSAPP_VERIFY_TOKEN: z.string().default('webhook-verify-secret'),
+  WHATSAPP_APP_SECRET: z.string().default(''),
+  CORS_ORIGIN: z.string().default(''),
 });
 
 export const config = envSchema.parse(process.env);

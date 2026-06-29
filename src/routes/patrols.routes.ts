@@ -27,12 +27,15 @@ const patrolsRoutes: FastifyPluginAsync = async (app) => {
 
     const where: Record<string, any> = {};
 
-    // Supervisor zone scoping
+    // …then apply role scoping LAST so query params can never widen the
+    // caller's view. Supervisors see only their zone's routes.
     if (user.role === 'supervisor' && user.zoneId) {
       where.zoneId = user.zoneId;
     }
 
-    if (query.zoneId) where.zoneId = query.zoneId;
+    // Allow zoneId filter only for non-supervisor roles (supervisors are
+    // already locked to their own zone above).
+    if (query.zoneId && user.role !== 'supervisor') where.zoneId = query.zoneId;
 
     const routes = await prisma.patrolRoute.findMany({
       where,
@@ -247,11 +250,15 @@ const patrolsRoutes: FastifyPluginAsync = async (app) => {
 
     const where: Record<string, any> = {};
 
-    // Supervisor zone scoping via shift's zoneId
+    // Role scoping FIRST — supervisor zone lock via shift's zoneId.
+    // Applied before query filters so params can't widen access.
     if (user.role === 'supervisor' && user.zoneId) {
       where.shift = { zoneId: user.zoneId };
     }
 
+    // Query filters (can't override supervisor scoping because Prisma
+    // merges `where.shift` with AND — additional shift filters would
+    // need to be spread into the same object, not overwrite it).
     if (query.shiftId) where.shiftId = query.shiftId;
     if (query.officerId) where.officerId = query.officerId;
 

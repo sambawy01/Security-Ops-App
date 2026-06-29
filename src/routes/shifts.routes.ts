@@ -41,16 +41,7 @@ const shiftsRoutes: FastifyPluginAsync = async (app) => {
 
     const where: Record<string, any> = {};
 
-    // Role-based scoping
-    if (user.role === 'supervisor' && user.zoneId) {
-      where.zoneId = user.zoneId;
-    } else if (user.role === 'officer') {
-      where.officerId = user.officerId;
-    }
-
-    // Query filters
-    if (query.zoneId) where.zoneId = query.zoneId;
-    if (query.officerId) where.officerId = query.officerId;
+    // Query filters first…
     if (query.status) where.status = query.status;
 
     // Date range filters
@@ -59,6 +50,20 @@ const shiftsRoutes: FastifyPluginAsync = async (app) => {
       if (query.from) where.scheduledStart.gte = query.from;
       if (query.to) where.scheduledStart.lte = query.to;
     }
+
+    // …then apply role scoping LAST so query params can never widen the
+    // caller's view. Officers see only their own shifts; supervisors see
+    // only their zone. Managers/assistant_managers/operators see everything.
+    if (user.role === 'officer') {
+      where.officerId = user.officerId;
+    } else if (user.role === 'supervisor' && user.zoneId) {
+      where.zoneId = user.zoneId;
+    }
+
+    // Allow officerId filter only for non-officer roles (officers are
+    // already locked to their own shifts above).
+    if (query.officerId && user.role !== 'officer') where.officerId = query.officerId;
+    if (query.zoneId && user.role !== 'supervisor') where.zoneId = query.zoneId;
 
     const shifts = await prisma.shift.findMany({
       where,

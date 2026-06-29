@@ -1,4 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
+import { createHmac, timingSafeEqual } from 'crypto';
+import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { config } from '../config.js';
 import { triageComplaint } from '../ai/service.js';
@@ -157,6 +159,25 @@ async function processInboundMessage(
   }
 }
 
+// ─── Signature Verification ──────────────────────────────────────────────────
+
+function verifyWebhookSignature(rawBody: string, signatureHeader: string | undefined): boolean {
+  if (!config.WHATSAPP_APP_SECRET) {
+    // If no app secret is configured, skip verification (demo mode).
+    // In production, WHATSAPP_APP_SECRET must be set.
+    return true;
+  }
+  if (!signatureHeader || !signatureHeader.startsWith('sha256=')) {
+    return false;
+  }
+  const expected = createHmac('sha256', config.WHATSAPP_APP_SECRET)
+    .update(rawBody)
+    .digest('hex');
+  const received = signatureHeader.slice(7); // strip 'sha256='
+  if (expected.length !== received.length) return false;
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(received));
+}
+
 // ─── Routes ─────────────────────────────────────────────────────────────────
 
 const whatsappRoutes: FastifyPluginAsync = async (app) => {
@@ -180,6 +201,14 @@ const whatsappRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /api/v1/whatsapp/webhook — Receives inbound messages from Meta
   app.post('/api/v1/whatsapp/webhook', async (request, reply) => {
+    // Verify webhook signature if app secret is configured
+    const signature = request.headers['x-hub-signature-256'] as string | undefined;
+    const rawBody = JSON.stringify(request.body ?? {});
+    if (!verifyWebhookSignature(rawBody, signature)) {
+      app.log.warn('[WhatsApp] Webhook signature verification failed');
+      return reply.status(403).send({ error: 'Signature verification failed' });
+    }
+
     // Must respond to Meta within 5 seconds — always return 200 immediately
     // and process async
     const body = request.body as WhatsAppWebhookBody;
@@ -224,10 +253,15 @@ const whatsappRoutes: FastifyPluginAsync = async (app) => {
   app.post('/api/v1/whatsapp/send', {
     config: { allowedRoles: ['operator', 'supervisor', 'manager', 'assistant_manager'] },
   }, async (request, reply) => {
-    const body = request.body as { to: string; message: string; templateName?: string };
+    const sendSchema = z.object({
+      to: z.string().min(7).max(20),
+      message: z.string().max(4096).optional(),
+      templateName: z.string().max(100).optional(),
+    });
+    const body = sendSchema.parse(request.body);
 
-    if (!body?.to || (!body.message && !body.templateName)) {
-      return reply.status(400).send({ error: 'Missing required fields: to, message or templateName' });
+    if (!body.message && !body.templateName) {
+      return reply.status(400).send({ error: 'Missing required fields: message or templateName' });
     }
 
     let success: boolean;
@@ -237,7 +271,7 @@ const whatsappRoutes: FastifyPluginAsync = async (app) => {
       const params = body.message ? body.message.split(',').map((s) => s.trim()) : [];
       success = await sendWhatsAppTemplate(body.to, body.templateName, params);
     } else {
-      success = await sendWhatsAppMessage(body.to, body.message);
+      success = await sendWhatsAppMessage(body.to, body.message ?? '');
     }
 
     if (success) {

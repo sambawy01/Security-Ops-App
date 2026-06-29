@@ -2,6 +2,7 @@ import Fastify, { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import { ZodError } from 'zod';
 import { AppError } from './lib/errors.js';
+import { config } from './config.js';
 import { prisma } from './lib/prisma.js';
 import { redis } from './lib/redis.js';
 import authPlugin from './plugins/auth.plugin.js';
@@ -24,7 +25,13 @@ export function buildApp() {
   // and request.protocol reflect the real client, not the platform proxy.
   const app = Fastify({ logger: true, trustProxy: true });
 
-  app.register(cors, { origin: true });
+  // CORS: restrict to configured origins in production, allow any in
+  // development (when CORS_ORIGIN is unset). Supports comma-separated
+  // multiple origins.
+  const corsOrigins = config.CORS_ORIGIN
+    ? config.CORS_ORIGIN.split(',').map(s => s.trim())
+    : true; // true = reflect any origin (dev/demo mode)
+  app.register(cors, { origin: corsOrigins });
 
   // Treat empty JSON bodies as `{}` instead of throwing FST_ERR_CTP_EMPTY_JSON_BODY.
   // Clients (browser fetch / RN fetch) send `Content-Type: application/json` even on

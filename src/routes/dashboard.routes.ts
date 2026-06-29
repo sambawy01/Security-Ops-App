@@ -3,7 +3,9 @@ import { prisma } from '../lib/prisma.js';
 
 const dashboardRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/v1/dashboard/stats — Aggregate stats for the dashboard
-  app.get('/api/v1/dashboard/stats', async () => {
+  app.get('/api/v1/dashboard/stats', {
+    config: { allowedRoles: ['manager', 'assistant_manager', 'supervisor', 'operator'] },
+  }, async () => {
     const [incidentsByPriority, officersByStatus, totalIncidents, recentUpdates] = await Promise.all([
       prisma.incident.groupBy({
         by: ['priority'],
@@ -30,7 +32,9 @@ const dashboardRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/v1/dashboard/relocate — Spread personnel around a GPS position (demo tool)
-  app.post('/api/v1/dashboard/relocate', async (request) => {
+  app.post('/api/v1/dashboard/relocate', {
+    config: { allowedRoles: ['manager', 'assistant_manager'] },
+  }, async (request) => {
     const { lat, lng } = request.body as { lat: number; lng: number };
     if (!lat || !lng) return { error: 'lat and lng required' };
 

@@ -2,7 +2,9 @@ import { FastifyPluginAsync } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 
 const syncRoutes: FastifyPluginAsync = async (app) => {
-  app.post('/api/v1/sync', async (request) => {
+  app.post('/api/v1/sync', {
+    config: { allowedRoles: ['officer', 'supervisor', 'manager', 'assistant_manager', 'operator'] },
+  }, async (request) => {
     const { actions } = request.body as { actions: Array<{
       id: string;
       actionType: string;

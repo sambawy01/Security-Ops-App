@@ -35,6 +35,33 @@ async function touchPresence(officerId: string): Promise<void> {
   }
 }
 
+// Check if the officer's account is still active (not suspended/deleted).
+// Cached in Redis for 30s to avoid a DB hit on every request.
+const STATUS_CACHE_TTL_S = 30;
+
+async function isOfficerActive(officerId: string): Promise<boolean> {
+  try {
+    const cacheKey = `officer:status:${officerId}`;
+    const cached = await redis.get(cacheKey);
+    if (cached !== null) {
+      return cached === 'active' || cached === 'off_duty' || cached === 'device_offline';
+    }
+
+    const officer = await prisma.officer.findUnique({
+      where: { id: officerId },
+      select: { status: true },
+    });
+    if (!officer) return false;
+
+    await redis.setex(cacheKey, STATUS_CACHE_TTL_S, officer.status);
+    return officer.status === 'active' || officer.status === 'off_duty' || officer.status === 'device_offline';
+  } catch {
+    // If the check fails, allow the request through — better than
+    // locking out all users on a transient DB error.
+    return true;
+  }
+}
+
 const authPlugin: FastifyPluginAsync = async (app) => {
   app.decorateRequest('user', undefined as unknown as typeof app extends { user: infer U } ? U : any);
 
@@ -55,6 +82,12 @@ const authPlugin: FastifyPluginAsync = async (app) => {
       request.user = verifyAccessToken(token);
     } catch {
       throw new UnauthorizedError('Invalid token');
+    }
+
+    // Check that the officer's account is still active (not suspended/deleted).
+    // Cached in Redis for 30s to avoid a DB hit per request.
+    if (!(await isOfficerActive(request.user.officerId))) {
+      throw new UnauthorizedError('Account suspended or deactivated');
     }
 
     // Fire-and-forget presence update (debounced via Redis).

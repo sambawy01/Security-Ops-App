@@ -23,7 +23,9 @@ const mediaRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/v1/media/upload?incidentId=...&type=photo
   // When incidentId is provided, also create the IncidentMedia row so the
   // dashboard's incident detail picks the photo up automatically.
-  app.post('/api/v1/media/upload', async (request, reply) => {
+  app.post('/api/v1/media/upload', {
+    config: { allowedRoles: ['officer', 'supervisor', 'manager', 'assistant_manager', 'operator'] },
+  }, async (request, reply) => {
     const data = await request.file();
     if (!data) return reply.status(400).send({ error: 'No file uploaded' });
 

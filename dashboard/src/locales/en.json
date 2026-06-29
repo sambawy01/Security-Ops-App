@@ -5,6 +5,11 @@
   "shifts": "Shifts",
   "reports": "Reports",
   "broadcast": "Broadcast",
+  "workforceNav": "Workforce",
+  "workforce": {
+    "title": "Workforce Management",
+    "subtitle": "Shift creation, editing, and manpower allocation"
+  },
   "settings": "Settings",
   "login": {
     "title": "Security OS",

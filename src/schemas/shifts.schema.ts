@@ -40,3 +40,17 @@ export const checkOutSchema = z.object({
 export const changeShiftStatusSchema = z.object({
   status: z.enum(['called_off', 'no_show']),
 });
+
+export const updateShiftSchema = z.object({
+  officerId: z.string().uuid().optional(),
+  zoneId: z.string().uuid().optional(),
+  scheduledStart: z.coerce.date().optional(),
+  scheduledEnd: z.coerce.date().optional(),
+  isOvertime: z.boolean().optional(),
+}).refine((data) => {
+  if (data.scheduledStart && data.scheduledEnd) return data.scheduledEnd > data.scheduledStart;
+  return true;
+}, {
+  message: 'scheduledEnd must be after scheduledStart',
+  path: ['scheduledEnd'],
+});

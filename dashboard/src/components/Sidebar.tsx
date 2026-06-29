@@ -9,6 +9,7 @@ import {
   FileText,
   Globe,
   Megaphone,
+  Briefcase,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
@@ -20,6 +21,7 @@ const navigation = [
   { key: 'incidents', href: '/incidents', icon: AlertTriangle, badge: true },
   { key: 'personnelNav', href: '/personnel', icon: Users },
   { key: 'shifts', href: '/shifts', icon: Clock },
+  { key: 'workforceNav', href: '/workforce', icon: Briefcase },
   { key: 'reports', href: '/reports', icon: FileText },
   { key: 'broadcast', href: '/broadcast', icon: Megaphone },
 ];

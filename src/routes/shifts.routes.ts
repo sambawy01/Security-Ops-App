@@ -8,6 +8,7 @@ import {
   checkInSchema,
   checkOutSchema,
   changeShiftStatusSchema,
+  updateShiftSchema,
 } from '../schemas/shifts.schema.js';
 
 const CREATE_ROLES = ['hr_admin', 'manager', 'assistant_manager'];
@@ -244,6 +245,53 @@ const shiftsRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return { data: updated };
+  });
+
+  // PUT /api/v1/shifts/:id — Edit shift (officer, zone, times, overtime)
+  app.put('/api/v1/shifts/:id', {
+    config: { allowedRoles: CREATE_ROLES },
+  }, async (request) => {
+    const { id } = shiftParamsSchema.parse((request as any).params);
+    const body = updateShiftSchema.parse(request.body);
+
+    const existing = await prisma.shift.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError('Shift not found');
+
+    // Only allow editing scheduled shifts (not active/completed)
+    if (existing.status === 'active' || existing.status === 'completed') {
+      throw new AppError(400, 'Cannot edit an active or completed shift');
+    }
+
+    const updated = await prisma.shift.update({
+      where: { id },
+      data: {
+        ...(body.officerId !== undefined && { officerId: body.officerId }),
+        ...(body.zoneId !== undefined && { zoneId: body.zoneId }),
+        ...(body.scheduledStart !== undefined && { scheduledStart: body.scheduledStart }),
+        ...(body.scheduledEnd !== undefined && { scheduledEnd: body.scheduledEnd }),
+        ...(body.isOvertime !== undefined && { isOvertime: body.isOvertime }),
+      },
+    });
+
+    return { data: updated };
+  });
+
+  // DELETE /api/v1/shifts/:id — Delete shift (only if scheduled)
+  app.delete('/api/v1/shifts/:id', {
+    config: { allowedRoles: CREATE_ROLES },
+  }, async (request, reply) => {
+    const { id } = shiftParamsSchema.parse((request as any).params);
+
+    const shift = await prisma.shift.findUnique({ where: { id } });
+    if (!shift) throw new NotFoundError('Shift not found');
+
+    if (shift.status === 'active') {
+      throw new AppError(400, 'Cannot delete an active shift — use called_off instead');
+    }
+
+    await prisma.shift.delete({ where: { id } });
+
+    return reply.status(204).send();
   });
 };
 

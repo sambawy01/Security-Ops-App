@@ -8,3 +8,5 @@ data/
 
 /src/generated/prisma
 .claude/
+.vercel
+.env*

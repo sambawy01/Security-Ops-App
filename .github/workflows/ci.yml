@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: secops
+          POSTGRES_PASSWORD: secops
+          POSTGRES_DB: secops
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U secops"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://secops:secops@localhost:5433/secops?schema=public
+      REDIS_URL: redis://localhost:6380
+      JWT_SECRET: ci-test-jwt-secret-min-16-chars
+      JWT_REFRESH_SECRET: ci-test-jwt-refresh-secret-min16
+      OLLAMA_URL: http://localhost:11434
+      OLLAMA_API_KEY: ""
+      AI_MODEL: qwen2.5:7b
+      WHATSAPP_TOKEN: ""
+      WHATSAPP_PHONE_ID: ""
+      WHATSAPP_VERIFY_TOKEN: webhook-verify-secret
+      WHATSAPP_APP_SECRET: ""
+      CORS_ORIGIN: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npx vitest run

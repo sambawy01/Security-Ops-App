@@ -101,7 +101,7 @@ const officersRoutes: FastifyPluginAsync = async (app) => {
   // The auth plugin already touches lastSeenAt on every request, but a dedicated
   // endpoint lets the mobile pulse presence even when there is no other traffic.
   app.post('/api/v1/officers/heartbeat', {
-    config: { allowedRoles: LIST_ROLES },
+    config: { allowedRoles: ['officer', 'supervisor', 'manager', 'assistant_manager', 'operator'] },
   }, async (request) => {
     // Bypass the redis debounce — force a write so a manual ping always lands.
     await prisma.officer.update({

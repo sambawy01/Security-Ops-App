@@ -42,7 +42,7 @@ interface ShiftData {
 }
 
 interface ShiftFormState {
-  officerId: string;
+  officerIds: string[];
   zoneId: string;
   scheduledStart: string;
   scheduledEnd: string;
@@ -50,7 +50,7 @@ interface ShiftFormState {
 }
 
 const EMPTY_FORM: ShiftFormState = {
-  officerId: '',
+  officerIds: [],
   zoneId: '',
   scheduledStart: '',
   scheduledEnd: '',
@@ -60,13 +60,12 @@ const EMPTY_FORM: ShiftFormState = {
 /** Generate a default shift form with sensible defaults: today 08:00 → 16:00 */
 function defaultShiftForm(): ShiftFormState {
   const now = new Date();
-  // Default: today at 08:00 → 16:00 (a standard day shift)
   const start = new Date(now);
   start.setHours(8, 0, 0, 0);
   const end = new Date(now);
   end.setHours(16, 0, 0, 0);
   return {
-    officerId: '',
+    officerIds: [],
     zoneId: '',
     scheduledStart: toLocalDateTimeInput(start),
     scheduledEnd: toLocalDateTimeInput(end),
@@ -169,7 +168,7 @@ export function WorkforceManagement() {
   const openEdit = (shift: ShiftData) => {
     setEditingShift(shift);
     setForm({
-      officerId: shift.officerId,
+      officerIds: [shift.officerId],
       zoneId: shift.zoneId,
       scheduledStart: toLocalDateTimeInput(new Date(shift.scheduledStart)),
       scheduledEnd: toLocalDateTimeInput(new Date(shift.scheduledEnd)),
@@ -179,9 +178,19 @@ export function WorkforceManagement() {
     setDialogOpen(true);
   };
 
+  const toggleOfficer = (id: string) => {
+    setForm((prev) => {
+      const has = prev.officerIds.includes(id);
+      return {
+        ...prev,
+        officerIds: has ? prev.officerIds.filter((x) => x !== id) : [...prev.officerIds, id],
+      };
+    });
+  };
+
   const handleSubmit = async () => {
     setFormError('');
-    if (!form.officerId) return setFormError(isAr ? 'اختر ضابطاً' : 'Select an officer');
+    if (form.officerIds.length === 0) return setFormError(isAr ? 'اختر ضابطاً واحداً على الأقل' : 'Select at least one officer');
     if (!form.zoneId) return setFormError(isAr ? 'اختر منطقة' : 'Select a zone');
     if (!form.scheduledStart || !form.scheduledEnd) return setFormError(isAr ? 'حدد وقت البداية والنهاية' : 'Set start and end times');
 
@@ -191,22 +200,26 @@ export function WorkforceManagement() {
 
     try {
       if (editingShift) {
+        // Edit mode: only update the single shift (use first selected officer)
         await updateShift.mutateAsync({
           id: editingShift.id,
-          officerId: form.officerId,
+          officerId: form.officerIds[0],
           zoneId: form.zoneId,
           scheduledStart: start.toISOString(),
           scheduledEnd: end.toISOString(),
           isOvertime: form.isOvertime,
         });
       } else {
-        await createShift.mutateAsync({
-          officerId: form.officerId,
-          zoneId: form.zoneId,
-          scheduledStart: start.toISOString(),
-          scheduledEnd: end.toISOString(),
-          isOvertime: form.isOvertime,
-        });
+        // Create mode: create one shift per selected officer
+        for (const officerId of form.officerIds) {
+          await createShift.mutateAsync({
+            officerId,
+            zoneId: form.zoneId,
+            scheduledStart: start.toISOString(),
+            scheduledEnd: end.toISOString(),
+            isOvertime: form.isOvertime,
+          });
+        }
       }
       setDialogOpen(false);
     } catch (e: any) {
@@ -235,13 +248,6 @@ export function WorkforceManagement() {
     const base = [{ value: '', label: isAr ? 'جميع المناطق' : 'All Zones' }];
     return [...base, ...zoneList.map((z) => ({ value: z.id, label: isAr ? (z.nameAr || z.nameEn) : z.nameEn }))];
   }, [zoneList, isAr]);
-
-  const officerOptions = useMemo(() => {
-    return officerList.map((o) => ({
-      value: o.id,
-      label: `${isAr ? (o.nameAr || o.nameEn) : o.nameEn} (${o.badgeNumber})`,
-    }));
-  }, [officerList, isAr]);
 
   const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
     active: { bg: 'bg-green-100', text: 'text-green-800', label: t('shift.active') },
@@ -416,15 +422,52 @@ export function WorkforceManagement() {
         </DialogTitle>
         <DialogContent>
           <div className="space-y-4">
-            {/* Officer */}
+            {/* Officer multi-select */}
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">{isAr ? 'الضابط' : 'Officer'}</label>
-              <Select
-                options={officerOptions}
-                value={form.officerId}
-                onChange={(e) => setForm({ ...form, officerId: e.target.value })}
-                placeholder={isAr ? 'اختر ضابطاً' : 'Select an officer'}
-              />
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                {isAr ? 'الضباط' : 'Officers'}
+                <span className="ms-1 text-slate-400 font-normal">
+                  {form.officerIds.length > 0 && `(${form.officerIds.length} ${isAr ? 'محدد' : 'selected'})`}
+                </span>
+              </label>
+              <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-300 bg-white divide-y divide-slate-100">
+                {officerList.map((o) => {
+                  const checked = form.officerIds.includes(o.id);
+                  return (
+                    <label
+                      key={o.id}
+                      className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleOfficer(o.id)}
+                        className="h-4 w-4 rounded border-slate-300 text-slate-900"
+                      />
+                      <span className="text-sm text-slate-900 flex-1">
+                        {isAr ? (o.nameAr || o.nameEn) : o.nameEn}
+                      </span>
+                      <span className="text-xs text-slate-400 font-mono">{o.badgeNumber}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2 mt-1.5">
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, officerIds: officerList.map((o) => o.id) }))}
+                  className="text-[10px] text-slate-500 hover:text-slate-700 underline"
+                >
+                  {isAr ? 'تحديد الكل' : 'Select all'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, officerIds: [] }))}
+                  className="text-[10px] text-slate-500 hover:text-slate-700 underline"
+                >
+                  {isAr ? 'إلغاء التحديد' : 'Clear'}
+                </button>
+              </div>
             </div>
 
             {/* Zone */}
